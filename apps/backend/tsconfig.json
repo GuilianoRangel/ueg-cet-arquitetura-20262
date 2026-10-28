@@ -1,6 +1,7 @@
 {
   "extends": "../../packages/typescript-config/nest.json",
   "compilerOptions": {
+    "outDir": "./dist",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
