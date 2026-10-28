@@ -10,8 +10,8 @@ describe('UsersListComponent', () => {
   let fixture: ComponentFixture<UsersListComponent>;
   
   const mockUsers: User[] = [
-    { id: '1', email: 'admin@ueg.br', nome: 'Admin User', role: 'admin', ativo: true },
-    { id: '2', email: 'pending@ueg.br', nome: 'Pending User', role: 'user', ativo: false }
+    { id: '1', email: 'admin@ueg.br', nome: 'Admin User', ativo: true, perfis: [{ id: 'p1', nome: 'Administrador' }] },
+    { id: '2', email: 'pending@ueg.br', nome: 'Pending User', ativo: false, perfis: [] }
   ];
 
   const mockAuthService = {

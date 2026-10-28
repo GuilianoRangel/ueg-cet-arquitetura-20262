@@ -1,23 +1,26 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Router, UrlTree } from '@angular/router';
 import { signal } from '@angular/core';
+import { Observable } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { authGuard, adminGuard } from './auth.guard';
+import { authGuard, roleGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 
 describe('Auth Guards', () => {
   const mockAuthService = {
     isAuth: signal(false),
-    isAdmin: signal(false)
+    rolesLoaded: signal(false),
+    hasRole: vi.fn((_role: string) => false)
   };
 
   const mockRouter = {
-    parseUrl: vi.fn((url: string) => url as any)
+    parseUrl: vi.fn((url: string) => url as unknown as UrlTree)
   };
 
   beforeEach(() => {
     mockAuthService.isAuth.set(false);
-    mockAuthService.isAdmin.set(false);
+    mockAuthService.rolesLoaded.set(false);
+    mockAuthService.hasRole.mockReturnValue(false);
     vi.clearAllMocks();
 
     TestBed.configureTestingModule({
@@ -32,33 +35,60 @@ describe('Auth Guards', () => {
     it('should return true if user is authenticated', () => {
       mockAuthService.isAuth.set(true);
 
-      const result = TestBed.runInInjectionContext(() => authGuard({} as any, {} as any));
+      const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
       expect(result).toBe(true);
     });
 
     it('should redirect to access-denied if user is not authenticated', () => {
       mockAuthService.isAuth.set(false);
 
-      const result = TestBed.runInInjectionContext(() => authGuard({} as any, {} as any));
+      const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
       expect(result).toBe('/access-denied');
       expect(mockRouter.parseUrl).toHaveBeenCalledWith('/access-denied');
     });
   });
 
-  describe('adminGuard', () => {
-    it('should return true if user is admin', () => {
-      mockAuthService.isAdmin.set(true);
+  describe('roleGuard', () => {
+    it('roleGuard should allow when user has the role after roles are loaded', () => {
+      mockAuthService.isAuth.set(true);
+      mockAuthService.rolesLoaded.set(true);
+      mockAuthService.hasRole.mockReturnValue(true);
 
-      const result = TestBed.runInInjectionContext(() => adminGuard({} as any, {} as any));
+      const guardFn = roleGuard('users:read');
+      const result = TestBed.runInInjectionContext(() => guardFn({} as never, {} as never));
       expect(result).toBe(true);
     });
 
-    it('should redirect to access-denied if user is not admin', () => {
-      mockAuthService.isAdmin.set(false);
+    it('roleGuard should redirect to /access-denied when role is missing', () => {
+      mockAuthService.isAuth.set(true);
+      mockAuthService.rolesLoaded.set(true);
+      mockAuthService.hasRole.mockReturnValue(false);
 
-      const result = TestBed.runInInjectionContext(() => adminGuard({} as any, {} as any));
+      const guardFn = roleGuard('users:read');
+      const result = TestBed.runInInjectionContext(() => guardFn({} as never, {} as never));
       expect(result).toBe('/access-denied');
       expect(mockRouter.parseUrl).toHaveBeenCalledWith('/access-denied');
+    });
+
+    it('roleGuard should wait for roles loading', () => {
+      mockAuthService.isAuth.set(true);
+      mockAuthService.rolesLoaded.set(false);
+      mockAuthService.hasRole.mockReturnValue(true);
+
+      const guardFn = roleGuard('users:read');
+      const obs$ = TestBed.runInInjectionContext(() => guardFn({} as never, {} as never)) as Observable<boolean | UrlTree>;
+
+      let finalValue: boolean | UrlTree | undefined;
+      obs$.subscribe(val => {
+        finalValue = val;
+      });
+
+      expect(finalValue).toBeUndefined();
+
+      mockAuthService.rolesLoaded.set(true);
+      TestBed.flushEffects();
+
+      expect(finalValue).toBe(true);
     });
   });
 });

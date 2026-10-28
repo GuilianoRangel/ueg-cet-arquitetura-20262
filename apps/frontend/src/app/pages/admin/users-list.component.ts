@@ -84,7 +84,7 @@ import { BadgeComponent } from '../../shared/components/ui/badge.component';
             <thead class="bg-muted/50">
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Usuário</th>
-                <th class="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Função</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perfis</th>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                 <th class="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ações</th>
               </tr>
@@ -102,10 +102,15 @@ import { BadgeComponent } from '../../shared/components/ui/badge.component';
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <ui-badge [variant]="user.role === 'admin' ? 'info' : 'secondary'">
-                    {{ user.role | uppercase }}
-                  </ui-badge>
+                <td class="px-6 py-4">
+                  <div class="flex flex-wrap gap-1">
+                    <ui-badge *ngFor="let perfil of user.perfis ?? []" variant="info">
+                      {{ perfil.nome }}
+                    </ui-badge>
+                    <span *ngIf="!user.perfis || user.perfis.length === 0" class="text-xs text-muted-foreground">
+                      Sem perfis
+                    </span>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <ui-badge [variant]="user.ativo ? 'success' : 'warning'">
@@ -149,10 +154,13 @@ import { BadgeComponent } from '../../shared/components/ui/badge.component';
                   <div class="text-xs text-muted-foreground">{{ user.email }}</div>
                 </div>
               </div>
-              <div class="flex gap-2">
-                <ui-badge [variant]="user.role === 'admin' ? 'info' : 'secondary'">
-                  {{ user.role | uppercase }}
+              <div class="flex flex-wrap gap-1">
+                <ui-badge *ngFor="let perfil of user.perfis ?? []" variant="info">
+                  {{ perfil.nome }}
                 </ui-badge>
+                <span *ngIf="!user.perfis || user.perfis.length === 0" class="text-xs text-muted-foreground">
+                  Sem perfis
+                </span>
                 <ui-badge [variant]="user.ativo ? 'success' : 'warning'">
                   {{ user.ativo ? 'Ativo' : 'Pendente' }}
                 </ui-badge>

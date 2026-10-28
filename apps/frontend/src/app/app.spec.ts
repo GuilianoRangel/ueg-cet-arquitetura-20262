@@ -9,7 +9,8 @@ describe('App', () => {
   const mockAuthService = {
     isAuth: signal(false),
     currentUser: signal(null),
-    isAdmin: signal(false),
+    hasRole: () => false,
+    rolesLoaded: signal(false),
     logout: () => {}
   };
 

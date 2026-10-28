@@ -5,7 +5,7 @@ import { ForgotPasswordComponent } from './pages/forgot-password/forgot-password
 import { ResetPasswordComponent } from './pages/reset-password/reset-password.component';
 import { AccessDeniedComponent } from './pages/access-denied/access-denied.component';
 import { UsersListComponent } from './pages/admin/users-list.component';
-import { authGuard, adminGuard } from './core/auth/auth.guard';
+import { authGuard, roleGuard } from './core/auth/auth.guard';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { inject } from '@angular/core';
 import { AuthService } from './core/auth/auth.service';
@@ -19,7 +19,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     component: UsersListComponent,
-    canActivate: [authGuard, adminGuard]
+    canActivate: [authGuard, roleGuard('users:read')]
   },
   {
     path: 'dashboard',
@@ -30,7 +30,7 @@ export const routes: Routes = [
     path: '',
     redirectTo: () => {
       const authService = inject(AuthService);
-      return authService.isAdmin() ? '/admin' : '/dashboard';
+      return authService.hasRole('users:read') ? '/admin' : '/dashboard';
     },
     pathMatch: 'full'
   },
@@ -38,7 +38,7 @@ export const routes: Routes = [
     path: '**',
     redirectTo: () => {
       const authService = inject(AuthService);
-      return authService.isAdmin() ? '/admin' : '/dashboard';
+      return authService.hasRole('users:read') ? '/admin' : '/dashboard';
     }
   }
 ];

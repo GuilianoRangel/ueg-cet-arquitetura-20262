@@ -22,7 +22,7 @@ import { BadgeComponent } from '../../shared/components/ui/badge.component';
       <nav actions class="flex items-center gap-4">
         @if (authService.isAuth()) {
           <div class="hidden md:flex items-center gap-4 mr-4 border-r border-border pr-6">
-            @if (authService.isAdmin()) {
+            @if (authService.hasRole('users:read')) {
               <a 
                 routerLink="/admin" 
                 routerLinkActive="text-primary border-primary" 
@@ -36,8 +36,8 @@ import { BadgeComponent } from '../../shared/components/ui/badge.component';
           <div class="flex items-center gap-4">
             <div class="flex flex-col items-end hidden sm:flex">
               <span class="text-sm font-medium text-foreground">{{ authService.currentUser()?.nome }}</span>
-              <ui-badge [variant]="authService.isAdmin() ? 'info' : 'success'">
-                {{ authService.currentUser()?.role | uppercase }}
+              <ui-badge [variant]="authService.hasRole('users:read') ? 'info' : 'success'">
+                {{ authService.hasRole('users:read') ? 'ADMIN' : 'USUÁRIO' }}
               </ui-badge>
             </div>
             
