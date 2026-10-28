@@ -92,6 +92,7 @@ O repositório adota a estrutura padrão de workspaces:
 │   ├── arquitetura.md     # Detalhes de arquitetura, fluxos Mermaid e Signals
 │   └── plan/              # Planos de implementação passo a passo
 ├── docs/                  # Documentação do projeto e guias
+│   ├── migrations.md      # Guia de migrations TypeORM e recriação do banco
 │   ├── smtp-config.md     # Configuração de envio de e-mails
 │   └── template-update.md # Guia de atualização a partir do template (stub)
 ├── scripts/               # Scripts utilitários de automação
@@ -136,15 +137,29 @@ pnpm install
 ```bash
 pnpm dev
 ```
-Ao iniciar, o backend criará automaticamente o **usuário administrador padrão** caso ele não exista:
+Ao iniciar, o backend executará automaticamente as migrations pendentes e criará de forma idempotente o **perfil Administrador**, o **perfil Usuário Padrão** e o **usuário administrador inicial** caso não existam:
 
-| Campo | Valor |
+| Campo | Valor / Configuração |
 | :--- | :--- |
-| E-mail | `admin@ueg.br` |
-| Senha | `admin123` |
-| Role | `ADMIN` |
+| E-mail | `admin@ueg.br` (configurável via `ADMIN_EMAIL`) |
+| Senha | `admin123` (configurável via `ADMIN_PASSWORD`) |
+| Perfil | `Administrador` (contém todas as permissões exceto `DADOS_SENSIVEIS`) |
 
-> ⚠️ **Altere a senha padrão do admin imediatamente em ambientes de produção.**
+> ⚠️ **Configuração de Segurança Obrigatória:**
+> - `JWT_SECRET`: Obrigatória. Em produção, defina uma chave forte (sem valor padrão).
+> - `ADMIN_PASSWORD`: Altere a senha padrão do admin antes de qualquer deploy em ambiente público.
+
+---
+
+## 🗄️ Migrations do Banco de Dados
+
+O banco de dados SQLite é versionado através das migrations do TypeORM.
+
+| Comando | Descrição |
+| :--- | :--- |
+| `pnpm --filter backend migration:run` | Executa todas as migrations pendentes |
+| `pnpm --filter backend migration:revert` | Reverte a última migration aplicada |
+| `pnpm --filter backend migration:generate -- <caminho>` | Gera uma nova migration baseada nas diferenças das entidades |
 
 ---
 

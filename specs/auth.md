@@ -17,7 +17,10 @@ Esta especificação detalha o funcionamento da feature de autenticação para o
 - `nome`: Obrigatório.
 - `senha`: Armazenada com hash (bcrypt).
 - `ativo`: Boolean (default: false).
-- `role`: enum (`admin`, `user`).
+- `perfis`: Relação N:N com `Perfil`. Cada perfil agrega uma coleção de permissões granulares (`roles: string[]`). O usuário adquire a união de todas as permissões de seus perfis ativos.
+- `versao`: Inteiro incremental para controle de concorrência otimista (optimistic locking).
+- `ultimoUsuarioId`: UUID do usuário que realizou a última alteração.
+- **Proteção do Último Administrador**: Não é permitido desativar, excluir ou remover o perfil Administrador do único administrador ativo do sistema (`USER_LAST_ADMIN`).
 
 ### Recuperação de Senha
 - **Hash de uso único**: Link enviado por e-mail contendo um token temporário.
@@ -42,11 +45,12 @@ Esta especificação detalha o funcionamento da feature de autenticação para o
 
 ## 3. Critérios de Aceitação
 
-- [ ] Login funcional com e-mail/senha.
-- [ ] Cadastro redireciona para login se o e-mail já existir.
-- [ ] Sessão expira após 60 minutos de inatividade.
-- [ ] Nome do usuário logado exibido no cabeçalho.
-- [ ] Página de erro de autenticação exibida para rotas protegidas.
+- [x] Login funcional com e-mail/senha.
+- [x] Cadastro retorna erro sem vazar informações se o e-mail já existir (`AUTH_EMAIL_EXISTS`).
+- [x] Sessão gerenciada com JWT curto (60 minutos) validado por `JwtAuthGuard`.
+- [x] Nome do usuário logado exibido no cabeçalho e roles carregadas dinamicamente via `GET /auth/me/roles`.
+- [x] Página de acesso negado/redirecionamento para rotas protegidas sem autenticação ou permissão (`authGuard`, `roleGuard`).
+- [x] Proteção contra desativação/exclusão do último administrador ativo (`USER_LAST_ADMIN`).
 
 ## 4. Cenários de Erro
 

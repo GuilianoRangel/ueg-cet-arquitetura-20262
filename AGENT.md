@@ -47,5 +47,6 @@ As principais skills ativadas são:
 > 3. **Planejamento de Ações**: Ao criar ou atualizar o plano de implementação (`implementation_plan.md`), o agente DEVE incluir explicitamente no planejamento quais **Skills** ativas deverão ser utilizadas na tarefa.
 > 4. **Ambiente de Execução (NVM)**: O agente DEVE sempre carregar explicitamente o NVM e a estrutura do pnpm do usuário para a execução de todos os comandos do terminal linux:
 >    `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && export PNPM_HOME="/home/guiliano/.local/share/pnpm" && export PATH="$PNPM_HOME:$PATH" && <comando>`
-> 5. **Proibição Estrita do Tipo `any`**: O agente NÃO deve utilizar o tipo `any` no TypeScript em nenhuma assinatura, retorno, método ou variável do monorepo, a menos que seja explicitamente orientado pelo usuário a fazê-lo.
-> 6. Use as *Skills* ativas (como design frontend de alta qualidade e TDD) a seu favor para alinhar suas entregas com a expectativa profissional do usuário.
+> 5. **Variáveis de Ambiente e Migrations**: O backend exige `JWT_SECRET` para inicialização. As migrations são versionadas pelo TypeORM e executadas automaticamente no boot ou via `pnpm --filter backend migration:run`. Os valores padrão de `ADMIN_EMAIL` e `ADMIN_PASSWORD` são usados no seed idempotente do primeiro administrador.
+> 6. **Proibição Estrita do Tipo `any`**: O agente NÃO deve utilizar o tipo `any` no TypeScript em nenhuma assinatura, retorno, método ou variável do monorepo, a menos que seja explicitamente orientado pelo usuário a fazê-lo.
+> 7. Use as *Skills* ativas (como design frontend de alta qualidade e TDD) a seu favor para alinhar suas entregas com a expectativa profissional do usuário.

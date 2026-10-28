@@ -47,23 +47,23 @@ sequenceDiagram
 ```
 
 ### Backend Guards (NestJS)
-* **`JwtAuthGuard`**: Responsável por extrair o token do cabeçalho `Authorization: Bearer <token>`, validá-lo e anexar o perfil decodificado ao objeto `req.user`.
-* **`RolesGuard`**: Utiliza o decorator `@Roles('admin')` para interceptar a requisição e validar se a role do usuário no token possui o perfil de administrador antes de dar acesso às rotas restritas.
+* **`JwtAuthGuard`**: Responsável por extrair o token do cabeçalho `Authorization: Bearer <token>`, validá-lo e anexar o usuário autenticado (`AuthenticatedUser`: `{ id, email, nome }`) ao objeto `req.user`. O token não transporta mais roles estáticas.
+* **`OperationGuard`**: Utiliza o decorator `@Operation('recurso:acao')` (ex.: `@Operation('users:read')`, `@Operation('categorias:create')`) para interceptar a requisição e validar se o usuário possui a permissão requerida. Consulta o `PermissionsService` (com cache em memória de TTL 5 minutos e invalidação imediata em mutações de usuários e perfis).
+* **Catálogo de Permissões**: Disponibilizado em `GET /roles` (`RolesCatalogController`), permitindo descoberta das operações existentes no sistema.
 
 ### Frontend Guards (Angular)
 * **`authGuard`**: Impede a navegação de usuários não autenticados para rotas privadas, redirecionando-os para `/access-denied` ou `/login`.
-* **`adminGuard`**: Bloqueia o acesso a caminhos como `/admin` caso a role do usuário logado não seja explicitamente `admin`.
+* **`roleGuard(role: string)`**: Bloqueia o acesso a rotas restritas caso o usuário logado não possua a permissão necessária. Aguarda o carregamento das roles (`rolesLoaded`) e redireciona para `/access-denied` caso a permissão esteja ausente. Substitui o antigo `adminGuard`.
 
-### Seed de Dados Iniciais (Admin)
-O sistema possui um `SeedService` (`apps/backend/src/users/seed.ts`) que é executado automaticamente na inicialização da aplicação via o lifecycle hook `OnModuleInit` do NestJS. Ele cria de forma **idempotente** o primeiro usuário administrador:
-* **E-mail**: `admin@ueg.br`
-* **Senha padrão**: `admin123`
-* **Role**: `ADMIN` | **Ativo**: `true`
+### Seed de Dados Iniciais e Migrations
+O sistema possui migrations versionadas gerenciadas pelo TypeORM (`apps/backend/src/migrations/`) e um `SeedService` (`apps/backend/src/database/seed.service.ts`) executado automaticamente na inicialização da aplicação via o hook `OnModuleInit` do `DatabaseModule`.
+As migrations rodam primeiro e, em seguida, o seed é executado de forma **idempotente**:
+* **Perfil Administrador**: Criado com todas as roles do sistema (exceto `DADOS_SENSIVEIS`).
+* **Perfil Usuário Padrão**: Criado com permissões básicas de consulta.
+* **Usuário Administrador**: Criado a partir das variáveis `ADMIN_EMAIL` (default: `admin@ueg.br`) e `ADMIN_PASSWORD` (default: `admin123`), com `ativo: true` e vinculado ao perfil Administrador.
 
 > [!IMPORTANT]
-> A senha padrão do admin deve ser alterada imediatamente após o primeiro deploy em qualquer ambiente.
-
-O `SeedService` está registrado como provider no `UsersModule` e utiliza o método `UsersService.createAdmin()`, que retorna o usuário existente caso já tenha sido criado anteriormente (sem duplicar).
+> A variável `JWT_SECRET` é obrigatória para a inicialização do `AuthModule`. Em produção, `ADMIN_PASSWORD` e `JWT_SECRET` devem ser configurados com valores fortes via variáveis de ambiente seguras.
 
 ---
 
@@ -75,8 +75,9 @@ O frontend adota **Angular Signals** como mecanismo primário de reatividade e c
                   ┌──────────────────────────────┐
                   │      AuthService (Signals)   │
                   │  - currentUser = signal(...) │
-                  │  - isAuth = signal(bool)     │
-                  │  - isAdmin = signal(bool)    │
+                  │  - roles = signal(string[])  │
+                  │  - rolesLoaded = signal(bool)│
+                  │  - isAuth = computed(...)    │
                   └──────────────┬───────────────┘
                                  │
                      Modifica / Atualiza
@@ -110,11 +111,11 @@ O frontend adota **Angular Signals** como mecanismo primário de reatividade e c
 ## 🛜 4. Comunicação, DTOs e Tratamento de Erros
 
 ### DTOs de Validação (Backend)
-Todos os payloads de entrada dos controllers NestJS devem ser rigidamente validados no nível do DTO usando `class-validator` e `class-transformer`:
+Todos os payloads de entrada dos controllers NestJS devem ser rigidamente validados no nível do DTO usando `class-validator` e `class-transformer` com `ValidationPipe` global (`whitelist: true`, `forbidNonWhitelisted: true`):
 ```typescript
 import { IsEmail, IsNotEmpty, MinLength, IsString } from 'class-validator';
 
-export class CreateUserDto {
+export class CreateManagedUserDto {
   @IsEmail()
   @IsNotEmpty()
   email!: string;
@@ -124,25 +125,60 @@ export class CreateUserDto {
   nome!: string;
 
   @MinLength(6)
-  password!: string;
+  senha!: string;
 }
 ```
 
-### Tratamento e Tradução de Erros
-* O backend lança exceções de regras de negócio estendendo `BusinessException` que geram payloads de erro estruturados e previsíveis.
-* O frontend implementa uma função utilitária global `parseAuthError` em `apps/frontend/src/app/core/utils/error-handler.util.ts`. Essa função converte códigos pré-definidos (como `AUTH_EMAIL_EXISTS` ou `AUTH_USER_INACTIVE`) em mensagens traduzidas legíveis por humanos:
+### Tratamento e Tradução de Erros (`ApiErrorResponse`)
+* O backend formata todos os erros no contrato padronizado `ApiErrorResponse` via `GlobalExceptionsFilter`:
+  ```typescript
+  export interface ApiErrorResponse {
+    statusCode: number;
+    error: string;
+    message: string;
+    timestamp: string;
+    path: string;
+    details?: unknown;
+  }
+  ```
+* Erros de negócio estendem `BusinessException` com código semântico e status HTTP apropriado (ex: 400, 404, 409).
+* Em falhas de concorrência por versão otimista (`versao` desatualizada), é lançada uma `OptimisticLockException` (409 `OPTIMISTIC_LOCK_CONFLICT`).
+* Erros não tratados (500) retornam `INTERNAL_ERROR` sem vazamento de stack traces em respostas de produção.
+* O frontend consome essa estrutura através de `parseAuthError` em `apps/frontend/src/app/core/utils/error-handler.util.ts`:
   ```typescript
   export function parseAuthError(error: any): string {
     const code = error?.error?.error;
     if (code === 'AUTH_EMAIL_EXISTS') return 'Este e-mail já está em uso.';
-    if (code === 'AUTH_USER_INACTIVE') return 'Esta conta está pendente de aprovação pelo administrador.';
+    if (code === 'AUTH_USER_INACTIVE') return 'Sua conta está aguardando liberação do administrador.';
+    if (code === 'AUTH_INVALID_CREDENTIALS') return 'E-mail ou senha incorretos.';
     return error?.error?.message || 'Ocorreu um erro inesperado.';
   }
   ```
 
 ---
 
-## 🎯 5. Políticas de Qualidade e Governança de Código
+## 🧩 5. CRUD Genérico e Permissões Dinâmicas
+
+A arquitetura do backend disponibiliza um framework de CRUD genérico reutilizável e extensível que integra:
+1. **`BaseEntity`**: Herança padrão para entidades com `id` (UUID), `dataCriacao`, `dataAtualizacao`, `ativo`, `versao` (optimistic locking incremental automático) e `ultimoUsuarioId`.
+2. **`CrudConfig`**: Configurações de rotas (`resourceName`), ordenação default, limites de paginação (`limit` máx 5000), campos pesquisáveis (`searchFields`), filtros exatos (`allowedFilters`) e relações carregadas.
+3. **`CrudService<E>`**: Implementação base das operações `findAll`, `findOne`, `create`, `update`, `remove` e `restore`. Suporta paginação `PageResult<E>`, filtros, ordenação segura e transações via `TransactionRunner`.
+4. **`createCrudController<E>`**: Factory de Controllers NestJS com rotas REST padronizadas protegidas automaticamente por `@Operation('resource:action')` e `JwtAuthGuard`.
+5. **Mascaramento de Dados Sensíveis**: Campos decorados com `@Sensitive()` são automaticamente mascarados (substituídos por `null`) para qualquer usuário que não possua a role especial `DADOS_SENSIVEIS`.
+6. **Controle de Concorrência SQLite**: Inclusão de Mutex (`async-mutex`) e `TransactionRunner` para serializar operações de escrita e evitar bloqueios (`SQLITE_BUSY`).
+7. **Documentação Automática OpenAPI (Swagger)**: Todos os endpoints (autenticação, catálogo de permissões e CRUD genérico) são documentados automaticamente via `@nestjs/swagger` com tags, schemas de DTOs, parâmetros de busca/paginação, códigos de retorno HTTP e suporte a Bearer JWT, acessível na rota `/api/docs`.
+
+### Como criar um novo CRUD em 5 passos:
+Para criar um CRUD completo (exemplo de `Categoria`):
+1. **Entidade**: Crie `Categoria` estendendo `BaseEntity` com decorators do TypeORM e `@Sensitive()` nos campos restritos.
+2. **DTOs**: Crie `CreateCategoriaDto` e `UpdateCategoriaDto` com validações de `class-validator`.
+3. **Migration**: Crie a migration da tabela com os índices adequados.
+4. **Service e Validador**: Crie `CategoriasService extends CrudService<Categoria>` definindo a `CrudConfig`. Caso haja regras de validação de negócio (como nome único ou integridade relacional), implemente um `CrudValidator<Categoria>`.
+5. **Controller e Módulo**: Crie `CategoriasController extends createCrudController(...)` e registre a entidade, o service e o controller no `CategoriasModule`. As roles (`categorias:read`, `categorias:create`, etc.) serão registradas e validadas automaticamente!
+
+---
+
+## 🎯 6. Políticas de Qualidade e Governança de Código
 
 Para garantir a sustentabilidade do projeto no longo prazo, todos os agentes de IA e desenvolvedores humanos devem obedecer às seguintes regras de qualidade:
 

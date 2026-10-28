@@ -432,20 +432,20 @@ Estrutura `packages/utils/src/contracts/`: `api-error.ts` (`ApiErrorDetail`, `Ap
 ---
 
 ## 11. Critérios de Aceitação
-- [ ] Criar um CRUD novo exige apenas: entidade, DTOs, `CrudConfig`, service/controller vazios e (opcional) hooks/validators.
-- [ ] Todas as operações respeitam a role própria (`recurso:create|read|update|delete`); rota sem `@Operation` é negada.
-- [ ] Validators bloqueiam antes da persistência; before/after hooks executam na ordem; falha em qualquer etapa (inclusive after hook) desfaz tudo.
-- [ ] Concorrência otimista: versão divergente ⇒ 409 `OPTIMISTIC_LOCK_CONFLICT`; ausente ⇒ 400.
-- [ ] `Categoria.valor` aparece como `99999` sem `DADOS_SENSIVEIS`; escrita/filtro/ordenação sem a role ⇒ 403 `FORBIDDEN_SENSITIVE_FIELD`.
-- [ ] Unicidade de `Categoria.nome` implementada por validator (hook), reutilizável após exclusão lógica.
-- [ ] Listagem: `limit` padrão 10, máximo 5000; filtros/ordenação restritos à configuração.
-- [ ] Todo erro (incluindo exceções inesperadas e erros de banco) sai no formato `ApiErrorResponse`.
-- [ ] `ultimoUsuarioId` preenchido em create/update/remove.
-- [ ] Perfis/roles: roles efetivas via `GET /auth/me/roles`; guard usa cache de 5 min com invalidação imediata nas alterações.
-- [ ] `synchronize` removido; migration inicial aplica em banco vazio; seed idempotente cria Administrador e admin; `JWT_SECRET` ausente derruba a inicialização.
-- [ ] Último admin não pode ser inativado/removido/perder o perfil.
-- [ ] Frontend continua funcional (login, `/admin`, listagem de usuários) com o novo modelo.
-- [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` e `pnpm build` passam; nenhum `any`.
+- [x] Criar um CRUD novo exige apenas: entidade, DTOs, `CrudConfig`, service/controller vazios e (opcional) hooks/validators.
+- [x] Todas as operações respeitam a role própria (`recurso:create|read|update|delete`); rota sem `@Operation` é negada.
+- [x] Validators bloqueiam antes da persistência; before/after hooks executam na ordem; falha em qualquer etapa (inclusive after hook) desfaz tudo.
+- [x] Concorrência otimista: versão divergente ⇒ 409 `OPTIMISTIC_LOCK_CONFLICT`; ausente ⇒ 400.
+- [x] `Categoria.valor` aparece como `99999` sem `DADOS_SENSIVEIS`; escrita/filtro/ordenação sem a role ⇒ 403 `FORBIDDEN_SENSITIVE_FIELD`.
+- [x] Unicidade de `Categoria.nome` implementada por validator (hook), reutilizável após exclusão lógica.
+- [x] Listagem: `limit` padrão 10, máximo 5000; filtros/ordenação restritos à configuração.
+- [x] Todo erro (incluindo exceções inesperadas e erros de banco) sai no formato `ApiErrorResponse`.
+- [x] `ultimoUsuarioId` preenchido em create/update/remove.
+- [x] Perfis/roles: roles efetivas via `GET /auth/me/roles`; guard usa cache de 5 min com invalidação imediata nas alterações.
+- [x] `synchronize` removido; migration inicial aplica em banco vazio; seed idempotente cria Administrador e admin; `JWT_SECRET` ausente derruba a inicialização.
+- [x] Último admin não pode ser inativado/removido/perder o perfil.
+- [x] Frontend continua funcional (login, `/admin`, listagem de usuários) com o novo modelo.
+- [x] `pnpm test`, `pnpm lint`, `pnpm typecheck` e `pnpm build` passam; nenhum `any`.
 
 ---
 
