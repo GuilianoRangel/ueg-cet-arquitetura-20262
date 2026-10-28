@@ -1,0 +1,59 @@
+@if (authService.isAuth()) {
+<ui-shell>
+  <app-header (menuToggle)="toggleSidebar()"></app-header>
+
+  <ui-sidebar [isOpen]="sidebarOpen()" (close)="closeSidebar()">
+    <div sidebar-header class="w-full flex items-center justify-between md:hidden">
+      <span class="font-bold text-primary">Menu</span>
+      <button (click)="closeSidebar()"
+        class="p-2 -mr-2 text-muted-foreground hover:text-foreground rounded-md transition-colors">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="flex flex-col gap-1 px-4">
+      <!-- Shared Dashboard Link -->
+      <a routerLink="/dashboard" routerLinkActive="bg-primary/10 text-primary font-medium"
+        [routerLinkActiveOptions]="{exact: true}" (click)="closeSidebar()"
+        class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+        </svg>
+        Início
+      </a>
+
+      <!-- Admin Links -->
+      @if (authService.isAdmin()) {
+      <a routerLink="/admin" routerLinkActive="bg-primary/10 text-primary font-medium"
+        [routerLinkActiveOptions]="{exact: true}" (click)="closeSidebar()"
+        class="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+          </path>
+        </svg>
+        Usuários
+      </a>
+      }
+    </nav>
+
+    <div sidebar-footer class="text-xs text-muted-foreground text-center">
+      Universidade Estadual de Goiás<br />© 2026
+    </div>
+  </ui-sidebar>
+
+  <router-outlet></router-outlet>
+</ui-shell>
+} @else {
+<div class="flex flex-col min-h-screen bg-background transition-colors duration-200">
+  <app-header></app-header>
+  <main class="flex-1 relative flex flex-col">
+    <router-outlet></router-outlet>
+  </main>
+</div>
+}
+
+<ui-toast></ui-toast>

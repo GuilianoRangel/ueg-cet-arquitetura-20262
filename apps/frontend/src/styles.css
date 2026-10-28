@@ -1,0 +1,117 @@
+@import "tailwindcss" source("./app");
+
+@theme {
+  /* === PALETA UEG === */
+  --color-ueg-green-50:  oklch(96% 0.03 155);
+  --color-ueg-green-100: oklch(90% 0.06 155);
+  --color-ueg-green-200: oklch(82% 0.09 155);
+  --color-ueg-green-300: oklch(72% 0.12 155);
+  --color-ueg-green-400: oklch(62% 0.14 155);
+  --color-ueg-green-500: oklch(52% 0.14 155);
+  --color-ueg-green-600: oklch(45% 0.13 155);
+  --color-ueg-green-700: oklch(38% 0.11 155);
+  --color-ueg-green-800: oklch(32% 0.09 155);
+  --color-ueg-green-900: oklch(25% 0.07 155);
+  --color-ueg-green-950: oklch(18% 0.05 155);
+
+  /* === TOKENS SEMÂNTICOS (Light) === */
+  --color-primary:            var(--color-ueg-green-600);
+  --color-primary-foreground:  oklch(98% 0 0);
+  --color-primary-hover:       var(--color-ueg-green-700);
+
+  --color-background:          oklch(98% 0.005 264);
+  --color-foreground:          oklch(20% 0.02 264);
+
+  --color-surface:             oklch(100% 0 0);
+  --color-surface-foreground:  oklch(20% 0.02 264);
+
+  --color-muted:               oklch(95% 0.005 264);
+  --color-muted-foreground:    oklch(45% 0.02 264);
+
+  --color-border:              oklch(90% 0.01 264);
+  --color-ring:                var(--color-ueg-green-500);
+  
+  --color-card:                var(--color-surface);
+  --color-card-foreground:     var(--color-surface-foreground);
+
+  --color-success:             oklch(60% 0.16 145);
+  --color-success-foreground:  oklch(98% 0 0);
+
+  --color-warning:             oklch(75% 0.15 75);
+  --color-warning-foreground:  oklch(25% 0.05 75);
+
+  --color-destructive:         oklch(55% 0.2 27);
+  --color-destructive-foreground: oklch(98% 0 0);
+
+  --color-info:                oklch(60% 0.15 250);
+  --color-info-foreground:     oklch(98% 0 0);
+
+  /* === RADIUS === */
+  --radius-sm:  0.25rem;
+  --radius-md:  0.5rem;
+  --radius-lg:  0.75rem;
+  --radius-xl:  1rem;
+  --radius-full: 9999px;
+
+  /* === SOMBRAS === */
+  --shadow-card: 0 1px 3px oklch(0% 0 0 / 0.08), 0 1px 2px oklch(0% 0 0 / 0.04);
+  --shadow-elevated: 0 4px 12px oklch(0% 0 0 / 0.1), 0 2px 4px oklch(0% 0 0 / 0.06);
+
+  /* === ANIMAÇÕES === */
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-left: slide-left 0.25s ease-out;
+  --animate-slide-in-right: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(0.5rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-left {
+    from { opacity: 0; transform: translateX(-1rem); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(2rem); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+}
+
+/* Dark mode variant */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Dark mode theme overrides */
+.dark {
+  --color-background:         oklch(15% 0.02 264);
+  --color-foreground:         oklch(92% 0.01 264);
+  
+  --color-surface:            oklch(20% 0.02 264);
+  --color-surface-foreground: oklch(92% 0.01 264);
+  
+  --color-muted:              oklch(25% 0.015 264);
+  --color-muted-foreground:   oklch(65% 0.02 264);
+  
+  --color-border:             oklch(28% 0.02 264);
+  --color-ring:               var(--color-ueg-green-400);
+  
+  --color-primary:            var(--color-ueg-green-400);
+  --color-primary-foreground: oklch(15% 0.02 155);
+  --color-primary-hover:      var(--color-ueg-green-500);
+  
+  --color-card:               var(--color-surface);
+  --color-card-foreground:    var(--color-surface-foreground);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary transition-colors duration-200;
+  }
+}

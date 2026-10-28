@@ -1,0 +1,41 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: ueg_backend
+    restart: always
+    #ports:
+    #  - "3000:3000"
+    volumes:
+      - sqlite_data:/data
+    environment:
+      - PORT=3000
+      - DATABASE_NAME=/data/database.sqlite
+      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key-change-in-production}
+      - JWT_EXPIRES_IN=1h
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost,http://localhost:4200}
+      - EMAIL_DISABLED=${EMAIL_DISABLED:-true}
+      - EMAIL_SIMULATION_FILE=/data/simulated_emails.log
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        - API_URL=${API_URL:-http://localhost:3000}
+    container_name: ueg_frontend
+    restart: always
+    #ports:
+    #  - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  sqlite_data:
+    driver: local

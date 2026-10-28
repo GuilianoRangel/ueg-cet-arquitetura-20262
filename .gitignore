@@ -1,0 +1,15 @@
+.idea/
+node_modules
+.turbo/cache/*
+apps/backend/.turbo/*
+apps/backend/dist/*
+apps/frontend/.turbo/*
+packages/utils/dist/*
+apps/frontend/.angular/cache/*
+apps/frontend/dist/*
+apps/backend/dist_test/*
+packages/utils/.turbo/
+apps/backend/*.sqlite
+apps/backend/*.log
+apps/backend/.env
+packages/typescript-config/dist/*
