@@ -1,6 +1,8 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export class BusinessException extends HttpException {
+  public readonly code: string;
+
   constructor(
     message: string,
     code: string,
@@ -14,5 +16,6 @@ export class BusinessException extends HttpException {
       },
       status,
     );
+    this.code = code;
   }
 }

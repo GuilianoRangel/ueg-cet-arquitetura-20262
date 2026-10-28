@@ -5,8 +5,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { User } from './users/entities/user.entity';
 import { MailerModule } from './mailer/mailer.module';
+import { dataSourceOptions } from './database/data-source';
+import { SeedService } from './database/seed/seed.service';
+import { PermissionsModule } from './auth/permissions/permissions.module';
+import { CrudModule } from './common/crud/crud.module';
+import { PerfisModule } from './perfis/perfis.module';
+import { CategoriasModule } from './categorias/categorias.module';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 @Module({
   imports: [
@@ -14,18 +21,23 @@ import { MailerModule } from './mailer/mailer.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: process.env.DATABASE_NAME || 'database.sqlite',
-      entities: [User],
-      synchronize: true, // Use with caution in prod
-      logging: true,
-    }),
+    TypeOrmModule.forRoot(dataSourceOptions),
+    PermissionsModule,
+    CrudModule,
+    PerfisModule,
+    CategoriasModule,
     UsersModule,
     AuthModule,
     MailerModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    SeedService,
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+  ],
 })
 export class AppModule {}
