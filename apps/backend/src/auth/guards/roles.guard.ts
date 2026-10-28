@@ -2,30 +2,50 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  Logger,
+  ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-import { User, Role } from '../../users/entities/user.entity';
+import { OPERATION_KEY } from '../permissions/operation.decorator';
+import { PermissionsService } from '../permissions/permissions.service';
+import { AuthenticatedUser } from '../../common/crud/crud.types';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+  public async canActivate(context: ExecutionContext): Promise<boolean> {
+    const requiredRole = this.reflector.get<string | undefined>(
+      OPERATION_KEY,
       context.getHandler(),
-      context.getClass(),
-    ]);
-    const logger = new Logger(RolesGuard.name);
-    logger.debug(`canActivate. Role: ${requiredRoles.join(', ')}`);
-    if (!requiredRoles) {
-      return true;
+    );
+
+    if (!requiredRole) {
+      throw new ForbiddenException('Acesso negado');
     }
-    const request = context.switchToHttp().getRequest<{ user?: User }>();
+
+    const request = context
+      .switchToHttp()
+      .getRequest<{ user?: AuthenticatedUser }>();
     const user = request.user;
-    logger.debug(`user object from passport: ${JSON.stringify(user)}`);
-    logger.debug(`user.role: ${user?.role || ''}`);
-    return requiredRoles.some((role) => user?.role === role);
+
+    if (!user || !user.id) {
+      throw new UnauthorizedException('Usuário não autenticado');
+    }
+
+    const effectiveRoles = await this.permissionsService.getEffectiveRoles(
+      user.id,
+    );
+
+    if (!effectiveRoles.has(requiredRole)) {
+      throw new ForbiddenException(
+        `Acesso negado: requer a role "${requiredRole}"`,
+      );
+    }
+
+    return true;
   }
 }

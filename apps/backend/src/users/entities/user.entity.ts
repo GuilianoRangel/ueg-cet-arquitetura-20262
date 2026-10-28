@@ -1,42 +1,39 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-
-export enum Role {
-  USER = 'user',
-  ADMIN = 'admin',
-}
+import { Entity, Column, ManyToMany, JoinTable } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from '../../common/crud/base.entity';
+import { Perfil } from '../../perfis/entities/perfil.entity';
 
 @Entity('users')
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
-
+export class User extends BaseEntity {
+  @ApiProperty({
+    example: 'admin@ueg.br',
+    description: 'E-mail do usuário',
+  })
   @Column({ unique: true })
   email!: string;
 
+  @ApiProperty({
+    example: 'Administrador',
+    description: 'Nome completo do usuário',
+  })
   @Column()
   nome!: string;
 
-  @Column()
+  @Column({ select: false })
   senha!: string;
 
+  @ApiProperty({
+    example: true,
+    description: 'Status de ativação da conta',
+  })
   @Column({ default: false })
   ativo!: boolean;
 
-  @Column({
-    type: 'varchar',
-    default: Role.USER,
+  @ApiProperty({
+    description: 'Lista de perfis atribuídos ao usuário',
+    type: () => [Perfil],
   })
-  role!: Role;
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
+  @ManyToMany(() => Perfil)
+  @JoinTable({ name: 'users_perfis' })
+  perfis!: Perfil[];
 }

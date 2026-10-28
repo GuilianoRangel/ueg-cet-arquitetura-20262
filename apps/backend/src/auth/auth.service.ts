@@ -16,7 +16,7 @@ export class AuthService {
     email: string,
     pass: string,
   ): Promise<Omit<User, 'senha'> | null> {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmailWithPassword(email);
     if (!user) {
       throw new BusinessException(
         'E-mail/senha não confere',
@@ -48,7 +48,6 @@ export class AuthService {
     const payload = {
       email: user.email,
       sub: user.id,
-      role: user.role,
       nome: user.nome,
     };
     return {

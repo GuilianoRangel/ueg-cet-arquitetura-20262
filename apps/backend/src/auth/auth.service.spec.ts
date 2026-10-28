@@ -4,15 +4,14 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { BusinessException } from '../common/exceptions/business.exception';
 import * as bcrypt from 'bcrypt';
-
-import { User, Role } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 
 jest.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: {
-    findByEmail: jest.Mock;
+    findByEmailWithPassword: jest.Mock;
   };
   let jwtService: {
     signAsync: jest.Mock;
@@ -20,7 +19,7 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     usersService = {
-      findByEmail: jest.fn(),
+      findByEmailWithPassword: jest.fn(),
     };
     jwtService = {
       signAsync: jest.fn().mockResolvedValue('token_xyz'),
@@ -42,8 +41,8 @@ describe('AuthService', () => {
   });
 
   describe('validateUser', () => {
-    it('should throw an error if user is not found', async () => {
-      usersService.findByEmail.mockResolvedValue(null);
+    it('should use findByEmailWithPassword in validateUser and throw if user not found', async () => {
+      usersService.findByEmailWithPassword.mockResolvedValue(null);
 
       await expect(
         service.validateUser('test@test.com', '123456'),
@@ -53,10 +52,13 @@ describe('AuthService', () => {
           'AUTH_INVALID_CREDENTIALS',
         ),
       );
+      expect(usersService.findByEmailWithPassword).toHaveBeenCalledWith(
+        'test@test.com',
+      );
     });
 
     it('should throw an error if password does not match', async () => {
-      usersService.findByEmail.mockResolvedValue({
+      usersService.findByEmailWithPassword.mockResolvedValue({
         senha: 'hashedPassword',
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
@@ -72,7 +74,7 @@ describe('AuthService', () => {
     });
 
     it('should throw an error if user is inactive', async () => {
-      usersService.findByEmail.mockResolvedValue({
+      usersService.findByEmailWithPassword.mockResolvedValue({
         senha: 'hashedPassword',
         ativo: false,
       });
@@ -89,7 +91,7 @@ describe('AuthService', () => {
     });
 
     it('should return user without password if validation succeeds', async () => {
-      usersService.findByEmail.mockResolvedValue({
+      usersService.findByEmailWithPassword.mockResolvedValue({
         id: '1',
         email: 'test@test.com',
         senha: 'hashedPassword',
@@ -103,24 +105,30 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should return an access token', async () => {
+    it('should sign a JWT payload with sub, email and nome and without role', async () => {
       const user: Omit<User, 'senha'> = {
         email: 'test@test.com',
         id: '1',
-        role: Role.USER,
         nome: 'Test',
         ativo: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+        version: 1,
+        deletedAt: null,
+        ultimoUsuarioId: null,
+        perfis: [],
       };
       const result = await service.login(user);
       expect(result).toEqual({ access_token: 'token_xyz' });
       expect(jwtService.signAsync).toHaveBeenCalledWith({
         email: user.email,
         sub: user.id,
-        role: user.role,
         nome: user.nome,
       });
+      const payloadCalls = jwtService.signAsync.mock.calls as Array<
+        [Record<string, unknown>]
+      >;
+      expect(payloadCalls[0][0].role).toBeUndefined();
     });
   });
 });
