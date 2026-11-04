@@ -38,6 +38,7 @@ As principais skills ativadas são:
 - **`nestjs-testing-expert` & `nestjs-best-practices`**: Melhores práticas arquiteturais em NestJS, junto de abordagens para manter boa cobertura de testes utilizando Jest.
 - **`tailwind-design-system` & `frontend-design`**: Foco em desenvolver interfaces premium, modernas e robustas, construindo design systems escaláveis com TailwindCSS.
 - **`clean-code`**: Escrever e refatorar "códigos que funcionam" para "códigos limpos".
+- **`generic-crud-usecase`**: Criação e evolução de casos de uso no backend NestJS utilizando a arquitetura de CRUD Genérico, configuração centralizada (`<entidade>.config.ts`), hooks com métodos privados nomeados, validações de negócio, controle de permissões por operação e OpenAPI/Swagger.
 - **`ai-integration.md` / `new-feature.md`**: Fluxos engessados sobre como o agente deve abordar a construção de integrações ou de novas funcionalidades (exigindo **TDD** como passo inicial e obrigatório, tanto no Back quanto no Front).
 
 > [!IMPORTANT]  
@@ -49,4 +50,5 @@ As principais skills ativadas são:
 >    `export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && export PNPM_HOME="/home/guiliano/.local/share/pnpm" && export PATH="$PNPM_HOME:$PATH" && <comando>`
 > 5. **Variáveis de Ambiente e Migrations**: O backend exige `JWT_SECRET` para inicialização. As migrations são versionadas pelo TypeORM e executadas automaticamente no boot ou via `pnpm --filter backend migration:run`. Os valores padrão de `ADMIN_EMAIL` e `ADMIN_PASSWORD` são usados no seed idempotente do primeiro administrador.
 > 6. **Proibição Estrita do Tipo `any`**: O agente NÃO deve utilizar o tipo `any` no TypeScript em nenhuma assinatura, retorno, método ou variável do monorepo, a menos que seja explicitamente orientado pelo usuário a fazê-lo.
-> 7. Use as *Skills* ativas (como design frontend de alta qualidade e TDD) a seu favor para alinhar suas entregas com a expectativa profissional do usuário.
+> 7. **Padrão Obrigatório de Hooks no CRUD Genérico**: Ao implementar ou estender serviços baseados em `CrudService`, todo e qualquer hook ou validador (`addValidator`, `addBeforeHook`, `addAfterHook`, `addAfterCommitHook`) DEVE ser obrigatoriamente implementado como um método privado dedicado com nome descritivo (ex: `validarEmailUnicoCreate`, `prepararDadosCriacao`, `validarProtecaoUltimoAdmin`). É terminantemente proibido manter lógicas anônimas ou inline extensas no construtor; o construtor deve apenas delegar para o método nomeado (`this.addValidator('create', (ctx) => this.validarEmailUnicoCreate(ctx));`). Além disso, as configurações de CRUD (`CrudConfig`) devem ser isoladas em arquivo próprio (`<entidade>.config.ts`) reutilizado entre o service e o controller.
+> 8. Use as *Skills* ativas (como design frontend de alta qualidade, generic-crud-usecase e TDD) a seu favor para alinhar suas entregas com a expectativa profissional do usuário.

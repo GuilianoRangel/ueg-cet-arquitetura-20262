@@ -39,3 +39,14 @@
 - **Mock de Dependências**: Utilizar `Test.createTestingModule` do NestJS mockando dependências externas (como Repositórios do TypeORM ou `MailerService`) para garantir que os testes unitários sejam isolados e rápidos.
 - **Cenários**: Cobrir no mínimo 100% das rotas de sucesso e falhas/erros de validação lógica mapeados.
 - **Diretrizes Detalhadas**: Para padrões avançados de testes e mock de injeção de dependências no NestJS, consulte a Skill [nestjs-testing-expert/SKILL.md](../skills/nestjs-testing-expert/SKILL.md).
+
+---
+
+## ⚙️ 5. Padrões do CRUD Genérico (`CrudService` e `createCrudController`)
+- **Arquivo de Configuração Único (`<entidade>.config.ts`)**: A configuração `CrudConfig<Entity, CreateDto, UpdateDto>` deve ser declarada em um arquivo próprio e reutilizada tanto no `service` (`super(deps, config)`) quanto no `controller` (`createCrudController(config)`), assegurando uma única fonte da verdade para recursos, filtros, ordenações e relacionamentos.
+- **Hooks e Validadores com Métodos Nomeados (Mandatório)**:
+  - É **terminantemente proibido** manter lógica de validação ou efeitos colaterais em arrow functions anônimas ou inline extensas no `constructor` ao registrar hooks (`addValidator`, `addBeforeHook`, `addAfterHook`, `addAfterCommitHook`).
+  - Cada hook/validador DEVE ser extraído para um método privado da classe do service com nome descritivo que identifique claramente a ação e a etapa (ex: `validarEmailUnicoCreate`, `prepararDadosCriacao`, `validarProtecaoUltimoAdmin`).
+  - O construtor deve conter apenas a delegação: `this.addValidator('create', (ctx) => this.validarEmailUnicoCreate(ctx));`.
+- **Exceções de Negócio**: Todas as falhas de validação de hooks devem lançar `BusinessException` com código semântico em `UPPER_SNAKE_CASE` e status HTTP apropriado.
+- **Skill de Referência**: Consulte a Skill [generic-crud-usecase](../skills/generic-crud-usecase/SKILL.md) para o guia completo e exemplo estruturado baseado no módulo de Usuários.
