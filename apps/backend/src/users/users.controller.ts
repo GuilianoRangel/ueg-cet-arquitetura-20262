@@ -15,37 +15,15 @@ import {
 } from '@nestjs/swagger';
 import { createCrudController } from '../common/crud/create-crud-controller';
 import { User } from './entities/user.entity';
-import {
-  CreateManagedUserDto,
-  UpdateManagedUserDto,
-} from './dto/managed-user.dto';
 import { UsersService } from './users.service';
+import { userCrudConfig } from './user.config';
 import { Operation } from '../auth/permissions/operation.decorator';
 import { RecoveryService } from '../auth/recovery.service';
 import { MailerService } from '../mailer/mailer.service';
 import { CurrentUser } from '../common/crud/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/crud/crud.types';
 
-const BaseCrudController = createCrudController<
-  User,
-  CreateManagedUserDto,
-  UpdateManagedUserDto
->({
-  resource: 'users',
-  entity: User,
-  createDto: CreateManagedUserDto,
-  updateDto: UpdateManagedUserDto,
-  deleteMode: 'soft',
-  relations: ['perfis'],
-  relationInputFields: ['perfilIds'],
-  filters: {
-    email: { type: 'string', operators: ['eq', 'like'] },
-    nome: { type: 'string', operators: ['eq', 'like'] },
-    ativo: { type: 'boolean', operators: ['eq'] },
-    createdAt: { type: 'date', operators: ['gte', 'lte', 'between'] },
-  },
-  sortable: ['email', 'nome', 'ativo', 'createdAt'],
-});
+const BaseCrudController = createCrudController(userCrudConfig);
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('users')

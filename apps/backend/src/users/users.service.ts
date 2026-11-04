@@ -13,6 +13,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { PermissionsService } from '../auth/permissions/permissions.service';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { AuthenticatedUser, CrudContext } from '../common/crud/crud.types';
+import { userCrudConfig } from './user.config';
 
 @Injectable()
 export class UsersService extends CrudService<
@@ -24,128 +25,146 @@ export class UsersService extends CrudService<
     deps: CrudDeps,
     private readonly permissionsService: PermissionsService,
   ) {
-    super(deps, {
-      resource: 'users',
-      entity: User,
-      createDto: CreateManagedUserDto,
-      updateDto: UpdateManagedUserDto,
-      deleteMode: 'soft',
-      relations: ['perfis'],
-      relationInputFields: ['perfilIds'],
-      filters: {
-        email: { type: 'string', operators: ['eq', 'like'] },
-        nome: { type: 'string', operators: ['eq', 'like'] },
-        ativo: { type: 'boolean', operators: ['eq'] },
-        createdAt: { type: 'date', operators: ['gte', 'lte', 'between'] },
-      },
-      sortable: ['email', 'nome', 'ativo', 'createdAt'],
-    });
+    super(deps, userCrudConfig);
 
     // 1. BeforeHook create: hash senha and default ativo=true
-    this.addBeforeHook('create', async (ctx) => {
-      ctx.input.senha = await bcrypt.hash(ctx.input.senha, 10);
-      if (ctx.input.ativo === undefined) {
-        ctx.input.ativo = true;
-      }
-    });
+    this.addBeforeHook('create', (ctx) => this.prepararDadosCriacao(ctx));
 
     // 2. Validator: e-mail unique (including soft-deleted)
-    this.addValidator('create', async (ctx) => {
-      const email = ctx.input.email?.toLowerCase().trim();
-      if (!email) return;
-      const count = await ctx.manager.getRepository(User).count({
-        where: { email },
-        withDeleted: true,
-      });
-      if (count > 0) {
-        throw new BusinessException(
-          'Já existe um usuário com este e-mail',
-          'USER_EMAIL_EXISTS',
-          HttpStatus.CONFLICT,
-        );
-      }
-    });
-
-    this.addValidator('update', async (ctx) => {
-      const email = ctx.input.email?.toLowerCase().trim();
-      if (!email) return;
-      const existing = ctx.existing;
-      if (existing && existing.email.toLowerCase() === email) {
-        return;
-      }
-      const targetId = existing ? existing.id : ctx.id!;
-      const count = await ctx.manager.getRepository(User).count({
-        where: { email, id: Not(targetId) },
-        withDeleted: true,
-      });
-      if (count > 0) {
-        throw new BusinessException(
-          'Já existe um usuário com este e-mail',
-          'USER_EMAIL_EXISTS',
-          HttpStatus.CONFLICT,
-        );
-      }
-    });
+    this.addValidator('create', (ctx) => this.validarEmailUnicoCreate(ctx));
+    this.addValidator('update', (ctx) => this.validarEmailUnicoUpdate(ctx));
 
     // 3. Validator: perfilIds must exist, not be soft-deleted, and be active
-    const validatePerfis = async (
-      manager: EntityManager,
-      perfilIds?: string[],
-    ) => {
-      if (!perfilIds || perfilIds.length === 0) return;
-      const perfis = await manager.getRepository(Perfil).find({
-        where: { id: In(perfilIds) },
-      });
-      if (perfis.length !== perfilIds.length) {
+    this.addValidator('create', (ctx) => this.validarPerfisCreate(ctx));
+    this.addValidator('update', (ctx) => this.validarPerfisUpdate(ctx));
+
+    // 4. Validator: Last Admin protection
+    this.addValidator('remove', (ctx) =>
+      this.validarProtecaoUltimoAdminRemove(ctx),
+    );
+    this.addValidator('update', (ctx) =>
+      this.validarProtecaoUltimoAdminUpdate(ctx),
+    );
+
+    // 5. AfterCommit: invalidate permissions cache
+    this.addAfterCommitHook('create', (entity) =>
+      this.invalidarCachePermissoesUsuario(entity),
+    );
+    this.addAfterCommitHook('update', (entity) =>
+      this.invalidarCachePermissoesUsuario(entity),
+    );
+    this.addAfterCommitHook('remove', (entity) =>
+      this.invalidarCachePermissoesUsuario(entity),
+    );
+  }
+
+  private async prepararDadosCriacao(
+    ctx: CrudContext<User, CreateManagedUserDto>,
+  ): Promise<void> {
+    ctx.input.senha = await bcrypt.hash(ctx.input.senha, 10);
+    if (ctx.input.ativo === undefined) {
+      ctx.input.ativo = true;
+    }
+  }
+
+  private async validarEmailUnicoCreate(
+    ctx: CrudContext<User, CreateManagedUserDto>,
+  ): Promise<void> {
+    const email = ctx.input.email?.toLowerCase().trim();
+    if (!email) return;
+    const count = await ctx.manager.getRepository(User).count({
+      where: { email },
+      withDeleted: true,
+    });
+    if (count > 0) {
+      throw new BusinessException(
+        'Já existe um usuário com este e-mail',
+        'USER_EMAIL_EXISTS',
+        HttpStatus.CONFLICT,
+      );
+    }
+  }
+
+  private async validarEmailUnicoUpdate(
+    ctx: CrudContext<User, UpdateManagedUserDto>,
+  ): Promise<void> {
+    const email = ctx.input.email?.toLowerCase().trim();
+    if (!email) return;
+    const existing = ctx.existing;
+    if (existing && existing.email.toLowerCase() === email) {
+      return;
+    }
+    const targetId = existing ? existing.id : ctx.id!;
+    const count = await ctx.manager.getRepository(User).count({
+      where: { email, id: Not(targetId) },
+      withDeleted: true,
+    });
+    if (count > 0) {
+      throw new BusinessException(
+        'Já existe um usuário com este e-mail',
+        'USER_EMAIL_EXISTS',
+        HttpStatus.CONFLICT,
+      );
+    }
+  }
+
+  private async validarPerfis(
+    manager: EntityManager,
+    perfilIds?: string[],
+  ): Promise<void> {
+    if (!perfilIds || perfilIds.length === 0) return;
+    const perfis = await manager.getRepository(Perfil).find({
+      where: { id: In(perfilIds) },
+    });
+    if (perfis.length !== perfilIds.length) {
+      throw new BusinessException(
+        'Um ou mais perfis informados são inválidos ou inativos',
+        'USER_PERFIL_INVALID',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    for (const p of perfis) {
+      if (!p.ativo) {
         throw new BusinessException(
           'Um ou mais perfis informados são inválidos ou inativos',
           'USER_PERFIL_INVALID',
           HttpStatus.BAD_REQUEST,
         );
       }
-      for (const p of perfis) {
-        if (!p.ativo) {
-          throw new BusinessException(
-            'Um ou mais perfis informados são inválidos ou inativos',
-            'USER_PERFIL_INVALID',
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-      }
-    };
+    }
+  }
 
-    this.addValidator('create', async (ctx) => {
-      await validatePerfis(ctx.manager, ctx.input.perfilIds);
-    });
+  private async validarPerfisCreate(
+    ctx: CrudContext<User, CreateManagedUserDto>,
+  ): Promise<void> {
+    await this.validarPerfis(ctx.manager, ctx.input.perfilIds);
+  }
 
-    this.addValidator('update', async (ctx) => {
-      await validatePerfis(ctx.manager, ctx.input.perfilIds);
-    });
+  private async validarPerfisUpdate(
+    ctx: CrudContext<User, UpdateManagedUserDto>,
+  ): Promise<void> {
+    await this.validarPerfis(ctx.manager, ctx.input.perfilIds);
+  }
 
-    // 4. Validator: Last Admin protection
-    this.addValidator('remove', async (ctx) => {
-      await this.checkLastAdminProtection(ctx.manager, ctx.existing, {
-        remove: true,
-      });
+  private async validarProtecaoUltimoAdminRemove(
+    ctx: CrudContext<User, unknown>,
+  ): Promise<void> {
+    await this.checkLastAdminProtection(ctx.manager, ctx.existing, {
+      remove: true,
     });
+  }
 
-    this.addValidator('update', async (ctx) => {
-      await this.checkLastAdminProtection(ctx.manager, ctx.existing, {
-        ativo: ctx.input.ativo,
-        perfilIds: ctx.input.perfilIds,
-      });
+  private async validarProtecaoUltimoAdminUpdate(
+    ctx: CrudContext<User, UpdateManagedUserDto>,
+  ): Promise<void> {
+    await this.checkLastAdminProtection(ctx.manager, ctx.existing, {
+      ativo: ctx.input.ativo,
+      perfilIds: ctx.input.perfilIds,
     });
+  }
 
-    // 5. AfterCommit: invalidate permissions cache
-    this.addAfterCommitHook('create', (entity) => {
-      this.permissionsService.invalidate(entity.id);
-    });
-    this.addAfterCommitHook('update', (entity) => {
-      this.permissionsService.invalidate(entity.id);
-    });
-    this.addAfterCommitHook('remove', (entity) => {
-      this.permissionsService.invalidate(entity.id);
-    });
+  private invalidarCachePermissoesUsuario(entity: User): void {
+    this.permissionsService.invalidate(entity.id);
   }
 
   protected override async syncRelations(
