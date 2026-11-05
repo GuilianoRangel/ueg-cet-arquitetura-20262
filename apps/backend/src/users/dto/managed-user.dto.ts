@@ -13,8 +13,15 @@ import {
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { createUpdateDto } from '../../common/crud/create-update-dto';
+import { FormFieldMeta } from '../../common/crud/decorators/form-field-meta.decorator';
 
 export class BaseManagedUserDto {
+  @FormFieldMeta({
+    label: 'E-mail',
+    inputType: 'email',
+    placeholder: 'nome@ueg.br',
+    order: 2,
+  })
   @ApiProperty({
     example: 'gestor@ueg.br',
     description: 'E-mail do usuário gerenciado',
@@ -25,6 +32,12 @@ export class BaseManagedUserDto {
   )
   email!: string;
 
+  @FormFieldMeta({
+    label: 'Nome Completo',
+    inputType: 'text',
+    placeholder: 'Ex: Maria Oliveira',
+    order: 1,
+  })
   @ApiProperty({
     example: 'Maria Oliveira',
     description: 'Nome completo do usuário',
@@ -38,6 +51,11 @@ export class BaseManagedUserDto {
   )
   nome!: string;
 
+  @FormFieldMeta({
+    label: 'Usuário Ativo',
+    inputType: 'boolean',
+    order: 5,
+  })
   @ApiPropertyOptional({
     example: true,
     description: 'Indica se a conta está ativa',
@@ -47,6 +65,16 @@ export class BaseManagedUserDto {
   @IsBoolean()
   ativo?: boolean;
 
+  @FormFieldMeta({
+    label: 'Perfis de Acesso',
+    inputType: 'multiselect',
+    optionsEndpoint: '/perfis',
+    optionsValueKey: 'id',
+    optionsLabelKey: 'nome',
+    entityRelationProperty: 'perfis',
+    entityRelationValueKey: 'id',
+    order: 4,
+  })
   @ApiPropertyOptional({
     example: ['d84b2c8a-1c32-45c1-8409-51a43ffb90a1'],
     description: 'Lista de IDs dos perfis associados ao usuário',
@@ -60,6 +88,12 @@ export class BaseManagedUserDto {
 }
 
 export class CreateManagedUserDto extends BaseManagedUserDto {
+  @FormFieldMeta({
+    label: 'Senha Inicial',
+    inputType: 'password',
+    placeholder: 'Mínimo de 6 caracteres',
+    order: 3,
+  })
   @ApiProperty({
     example: 'senhaInicial123',
     description: 'Senha de acesso do usuário',

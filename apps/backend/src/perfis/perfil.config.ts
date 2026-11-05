@@ -14,8 +14,23 @@ export const perfilCrudConfig: CrudConfig<
   deleteMode: 'soft',
   sortable: ['nome', 'ativo', 'createdAt'],
   filters: {
-    nome: { type: 'string', operators: ['eq', 'like'] },
-    ativo: { type: 'boolean', operators: ['eq'] },
+    nome: {
+      type: 'string',
+      label: 'Nome',
+      controlType: 'text',
+      defaultOperator: 'like',
+      quickFilter: true,
+      placeholder: 'Buscar perfil...',
+      operators: ['eq', 'like'],
+    },
+    ativo: {
+      type: 'boolean',
+      label: 'Status',
+      controlType: 'boolean',
+      defaultOperator: 'eq',
+      quickFilter: true,
+      operators: ['eq'],
+    },
   },
 };
 

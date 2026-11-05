@@ -6,7 +6,11 @@ import { tmpdir } from 'os';
 import { unlinkSync, existsSync } from 'fs';
 import { AppModule } from './app.module';
 import { dataSourceOptions } from './database/data-source';
-import { SENSITIVE_DATA_ROLE, ADMIN_PERFIL_NOME } from '@repo/utils';
+import {
+  SENSITIVE_DATA_ROLE,
+  ADMIN_PERFIL_NOME,
+  CrudResourceMetaDto,
+} from '@repo/utils';
 import { DataSource } from 'typeorm';
 import { Perfil } from './perfis/entities/perfil.entity';
 import { User } from './users/entities/user.entity';
@@ -451,5 +455,103 @@ describe('CRUD Flow End-to-End Integration', () => {
     const body = res.body as ErrorResponse;
     expect(body.statusCode).toBe(400);
     expect(body.stack).toBeUndefined();
+  });
+
+  it('13. GET /categorias/meta should return filters, createForm and updateForm with valor marked masked/readOnly when user lacks DADOS_SENSIVEIS', async () => {
+    const leitorLogin = await request(server)
+      .post('/auth/login')
+      .send({ email: 'leitor@ueg.br', senha: 'password123' })
+      .expect(201);
+    const leitorToken = (leitorLogin.body as LoginResponse).access_token;
+
+    const res = await request(server)
+      .get('/categorias/meta')
+      .set('Authorization', `Bearer ${leitorToken}`)
+      .expect(200);
+
+    const meta = res.body as CrudResourceMetaDto;
+    expect(meta.resource).toBe('categorias');
+    expect(
+      meta.filters.fields.find((f) => f.field === 'valor'),
+    ).toBeUndefined();
+
+    const createValor = meta.createForm.fields.find((f) => f.name === 'valor');
+    expect(createValor).toBeDefined();
+    expect(createValor?.masked).toBe(true);
+    expect(createValor?.readOnly).toBe(true);
+    expect(createValor?.omitOnSubmit).toBe(true);
+  });
+
+  it('14. GET /categorias/meta should return valor editable and filterable when user has DADOS_SENSIVEIS', async () => {
+    const res = await request(server)
+      .get('/categorias/meta')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const meta = res.body as CrudResourceMetaDto;
+    expect(meta.filters.fields.find((f) => f.field === 'valor')).toBeDefined();
+
+    const createValor = meta.createForm.fields.find((f) => f.name === 'valor');
+    expect(createValor).toBeDefined();
+    expect(createValor?.masked).toBe(false);
+    expect(createValor?.readOnly).toBe(false);
+    expect(createValor?.omitOnSubmit).toBe(false);
+  });
+
+  it('15. GET /users/meta should include senha in createForm and exclude senha in updateForm', async () => {
+    const res = await request(server)
+      .get('/users/meta')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const meta = res.body as CrudResourceMetaDto;
+    expect(
+      meta.createForm.fields.find((f) => f.name === 'senha'),
+    ).toBeDefined();
+    expect(
+      meta.updateForm.fields.find((f) => f.name === 'senha'),
+    ).toBeUndefined();
+    expect(
+      meta.updateForm.fields.find((f) => f.name === 'version')?.hidden,
+    ).toBe(true);
+  });
+
+  it('16. GET /users?perfilId=<id> should filter users by associated perfil', async () => {
+    const dataSource = app.get(DataSource);
+    const leitorPerfil = await dataSource.getRepository(Perfil).findOneOrFail({
+      where: { nome: 'Leitor Categorias' },
+    });
+
+    const res = await request(server)
+      .get(`/users?perfilId=${leitorPerfil.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const list = res.body as ListResponse<{ email: string }>;
+    expect(list.total).toBe(1);
+    expect(list.items[0].email).toBe('leitor@ueg.br');
+  });
+
+  it('17. POST /users with duplicate email should return 409 USER_EMAIL_EXISTS with details[{ field: "email", message }]', async () => {
+    const res = await request(server)
+      .post('/users')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        email: 'admin@ueg.br',
+        nome: 'Outro Admin',
+        senha: 'password123',
+      })
+      .expect(409);
+
+    const body = res.body as ErrorResponse & {
+      details?: { field: string; message: string }[];
+    };
+    expect(body.error).toBe('USER_EMAIL_EXISTS');
+    expect(body.details).toEqual([
+      expect.objectContaining({
+        field: 'email',
+        message: 'Já existe um usuário com este e-mail',
+      }),
+    ]);
   });
 });

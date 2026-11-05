@@ -1,6 +1,12 @@
 import { HttpStatus, Logger } from '@nestjs/common';
 import { DeepPartial } from 'typeorm';
-import { PageResult, SENSITIVE_DATA_ROLE } from '@repo/utils';
+import {
+  CrudFormSchemaDto,
+  CrudResourceMetaDto,
+  PageResult,
+  SearchFilterConfigDto,
+  SENSITIVE_DATA_ROLE,
+} from '@repo/utils';
 import { BaseEntity } from './base.entity';
 import {
   AuthenticatedUser,
@@ -20,6 +26,11 @@ import { applyToQueryBuilder, parseCrudQuery } from './crud-query';
 import { BusinessException } from '../exceptions/business.exception';
 import { ValidationException } from '../exceptions/validation.exception';
 import { Injectable } from '@nestjs/common';
+import {
+  buildSearchFilterConfig,
+  ISmartFilterConfigProvider,
+} from './metadata/smart-filter-metadata.service';
+import { DtoMetadataExplorer } from './metadata/dto-metadata.explorer';
 
 @Injectable()
 export class CrudDeps {
@@ -34,8 +45,9 @@ export abstract class CrudService<
   E extends BaseEntity,
   C extends object,
   U extends { version: number },
-> {
+> implements ISmartFilterConfigProvider {
   protected readonly logger = new Logger(this.constructor.name);
+  private readonly dtoExplorer = new DtoMetadataExplorer();
 
   private readonly validators = new Map<
     CrudOperation,
@@ -593,5 +605,66 @@ export abstract class CrudService<
         limit: parsed.limit,
       };
     });
+  }
+
+  public getSearchFilterConfig(
+    userRoles: ReadonlySet<string>,
+  ): SearchFilterConfigDto {
+    const maskedFields = getMaskedFields(this.config.entity);
+    return buildSearchFilterConfig(this.config, userRoles, maskedFields);
+  }
+
+  public async getFilterMeta(
+    user: AuthenticatedUser | null,
+  ): Promise<SearchFilterConfigDto> {
+    const userRoles = await this.getUserRoles(user);
+    return this.getSearchFilterConfig(userRoles);
+  }
+
+  public async getFormMeta(user: AuthenticatedUser | null): Promise<{
+    createForm: CrudFormSchemaDto;
+    updateForm: CrudFormSchemaDto;
+  }> {
+    const userRoles = await this.getUserRoles(user);
+    return {
+      createForm: this.dtoExplorer.exploreFormSchema(
+        this.config.createDto,
+        'create',
+        this.config.entity,
+        userRoles,
+      ),
+      updateForm: this.dtoExplorer.exploreFormSchema(
+        this.config.updateDto,
+        'update',
+        this.config.entity,
+        userRoles,
+      ),
+    };
+  }
+
+  public async getMeta(
+    user: AuthenticatedUser | null,
+  ): Promise<CrudResourceMetaDto> {
+    const userRoles = await this.getUserRoles(user);
+    const filters = this.getSearchFilterConfig(userRoles);
+    const createForm = this.dtoExplorer.exploreFormSchema(
+      this.config.createDto,
+      'create',
+      this.config.entity,
+      userRoles,
+    );
+    const updateForm = this.dtoExplorer.exploreFormSchema(
+      this.config.updateDto,
+      'update',
+      this.config.entity,
+      userRoles,
+    );
+
+    return {
+      resource: this.config.resource,
+      filters,
+      createForm,
+      updateForm,
+    };
   }
 }

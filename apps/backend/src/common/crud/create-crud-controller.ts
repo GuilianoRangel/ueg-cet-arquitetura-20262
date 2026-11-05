@@ -19,6 +19,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  CrudFormSchemaDto,
+  CrudResourceMetaDto,
+  SearchFilterConfigDto,
+} from '@repo/utils';
 import { BaseEntity } from './base.entity';
 import { AuthenticatedUser, CrudConfig } from './crud.types';
 import { CrudService } from './crud.service';
@@ -37,6 +42,12 @@ export interface ICrudController<
     query: Record<string, unknown>,
     user: AuthenticatedUser | null,
   ): Promise<unknown>;
+  getMeta(user: AuthenticatedUser | null): Promise<CrudResourceMetaDto>;
+  getFilterMeta(user: AuthenticatedUser | null): Promise<SearchFilterConfigDto>;
+  getFormMeta(user: AuthenticatedUser | null): Promise<{
+    createForm: CrudFormSchemaDto;
+    updateForm: CrudFormSchemaDto;
+  }>;
   findOne(id: string, user: AuthenticatedUser | null): Promise<E>;
   update(id: string, dto: U, user: AuthenticatedUser | null): Promise<E>;
   remove(
@@ -159,6 +170,60 @@ export function createCrudController<
       @CurrentUser() user: AuthenticatedUser | null,
     ) {
       return this.service.findAll(query, user);
+    }
+
+    @Get('meta')
+    @HttpCode(HttpStatus.OK)
+    @Operation(`${resource}:read`)
+    @ApiOperation({
+      summary: `Metadados completos de ${resource}`,
+      description: `Retorna metadados de busca (SmartFilterBar) e schemas de formulário (create/update) extraídos por reflexão. Exige a role "${resource}:read".`,
+    })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Metadados do recurso retornados com sucesso.',
+    })
+    public async getMeta(
+      @CurrentUser() user: AuthenticatedUser | null,
+    ): Promise<CrudResourceMetaDto> {
+      return this.service.getMeta(user);
+    }
+
+    @Get('meta/filters')
+    @HttpCode(HttpStatus.OK)
+    @Operation(`${resource}:read`)
+    @ApiOperation({
+      summary: `Metadados de filtro de ${resource}`,
+      description: `Retorna a configuração de campos de busca para o SmartFilterBar. Exige a role "${resource}:read".`,
+    })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Metadados de busca retornados com sucesso.',
+    })
+    public async getFilterMeta(
+      @CurrentUser() user: AuthenticatedUser | null,
+    ): Promise<SearchFilterConfigDto> {
+      return this.service.getFilterMeta(user);
+    }
+
+    @Get('meta/form')
+    @HttpCode(HttpStatus.OK)
+    @Operation(`${resource}:read`)
+    @ApiOperation({
+      summary: `Metadados de formulário de ${resource}`,
+      description: `Retorna os schemas de formulário de criação e atualização. Exige a role "${resource}:read".`,
+    })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Metadados de formulário retornados com sucesso.',
+    })
+    public async getFormMeta(
+      @CurrentUser() user: AuthenticatedUser | null,
+    ): Promise<{
+      createForm: CrudFormSchemaDto;
+      updateForm: CrudFormSchemaDto;
+    }> {
+      return this.service.getFormMeta(user);
     }
 
     @Get(':id')

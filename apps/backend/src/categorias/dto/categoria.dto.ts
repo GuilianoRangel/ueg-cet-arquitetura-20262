@@ -10,8 +10,15 @@ import {
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { createUpdateDto } from '../../common/crud/create-update-dto';
+import { FormFieldMeta } from '../../common/crud/decorators/form-field-meta.decorator';
 
 export class CreateCategoriaDto {
+  @FormFieldMeta({
+    label: 'Nome da Categoria',
+    inputType: 'text',
+    placeholder: 'Ex: Material Escolar',
+    order: 1,
+  })
   @ApiProperty({
     example: 'Material Escolar',
     description: 'Nome da categoria (único entre registros ativos)',
@@ -25,6 +32,11 @@ export class CreateCategoriaDto {
   )
   nome!: string;
 
+  @FormFieldMeta({
+    label: 'Categoria Ativa',
+    inputType: 'boolean',
+    order: 3,
+  })
   @ApiPropertyOptional({
     example: true,
     description: 'Indica se a categoria está ativa',
@@ -34,6 +46,12 @@ export class CreateCategoriaDto {
   @IsBoolean()
   ativo?: boolean;
 
+  @FormFieldMeta({
+    label: 'Valor (R$)',
+    inputType: 'currency',
+    placeholder: '0,00',
+    order: 2,
+  })
   @ApiPropertyOptional({
     example: 15000,
     description:

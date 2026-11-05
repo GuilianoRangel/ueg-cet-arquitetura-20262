@@ -1,6 +1,7 @@
 import { Type } from '@nestjs/common';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsInt, Min } from 'class-validator';
+import { CRUD_BASE_DTO_KEY } from './decorators/form-field-meta.decorator';
 
 export function createUpdateDto<T extends object>(
   baseDto: Type<T>,
@@ -19,6 +20,8 @@ export function createUpdateDto<T extends object>(
     @Min(1, { message: 'A versão deve ser maior ou igual a 1' })
     version!: number;
   }
+
+  Reflect.defineMetadata(CRUD_BASE_DTO_KEY, baseDto, BaseUpdateDto);
 
   Object.defineProperty(BaseUpdateDto, 'name', {
     value: `Update${baseDto.name}`,

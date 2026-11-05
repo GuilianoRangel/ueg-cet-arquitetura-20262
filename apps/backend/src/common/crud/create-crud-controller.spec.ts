@@ -114,6 +114,20 @@ describe('createCrudController', () => {
           } as TestItem),
         ),
       remove: jest.fn().mockResolvedValue(undefined),
+      getMeta: jest.fn().mockResolvedValue({
+        resource: 'items',
+        filters: { resource: 'items', fields: [] },
+        createForm: { mode: 'create', fields: [] },
+        updateForm: { mode: 'update', fields: [] },
+      }),
+      getFilterMeta: jest.fn().mockResolvedValue({
+        resource: 'items',
+        fields: [],
+      }),
+      getFormMeta: jest.fn().mockResolvedValue({
+        createForm: { mode: 'create', fields: [] },
+        updateForm: { mode: 'update', fields: [] },
+      }),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -288,5 +302,30 @@ describe('createCrudController', () => {
     await request(app.getHttpServer() as never)
       .get('/items/custom')
       .expect(200);
+  });
+
+  it('should expose GET /items/meta, /items/meta/filters and /items/meta/form protected by items:read without colliding with :id', async () => {
+    await request(app.getHttpServer() as never)
+      .get('/items/meta')
+      .expect(403);
+
+    userRoles.add('items:read');
+
+    const metaRes = await request(app.getHttpServer() as never)
+      .get('/items/meta')
+      .expect(200);
+    expect((metaRes.body as { resource: string }).resource).toBe('items');
+
+    const filterMetaRes = await request(app.getHttpServer() as never)
+      .get('/items/meta/filters')
+      .expect(200);
+    expect((filterMetaRes.body as { resource: string }).resource).toBe('items');
+
+    const formMetaRes = await request(app.getHttpServer() as never)
+      .get('/items/meta/form')
+      .expect(200);
+    expect(
+      (formMetaRes.body as { createForm: { mode: string } }).createForm.mode,
+    ).toBe('create');
   });
 });

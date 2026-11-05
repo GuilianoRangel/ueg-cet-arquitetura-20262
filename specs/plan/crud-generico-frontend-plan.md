@@ -130,8 +130,8 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seções 3.3 e 5), `apps/backend/src/common/crud/create-crud-controller.ts`, `apps/backend/src/common/crud/crud.service.ts`, `apps/backend/src/categorias/dto/categoria.dto.ts`, `apps/backend/src/perfis/dto/perfil.dto.ts`, `apps/backend/src/users/dto/managed-user.dto.ts`.
 > - Skills ativas: `execute-plan`, `generic-crud-usecase`, `nestjs-best-practices`, `nestjs-testing-expert`.
 
-- [ ] 3.1 Criar o decorator `@FormFieldMeta(options: FormFieldMetaOptions)` em `apps/backend/src/common/crud/decorators/form-field-meta.decorator.ts` armazenando metadados por propriedade na classe/protótipo via `Reflect.defineMetadata` (suportando herança de classes base como `BaseManagedUserDto` e `createUpdateDto`).
-- [ ] 3.2 **Testes** em `apps/backend/src/common/crud/metadata/dto-metadata.explorer.spec.ts`:
+- [x] 3.1 Criar o decorator `@FormFieldMeta(options: FormFieldMetaOptions)` em `apps/backend/src/common/crud/decorators/form-field-meta.decorator.ts` armazenando metadados por propriedade na classe/protótipo via `Reflect.defineMetadata` (suportando herança de classes base como `BaseManagedUserDto` e `createUpdateDto`).
+- [x] 3.2 **Testes** em `apps/backend/src/common/crud/metadata/dto-metadata.explorer.spec.ts`:
   - `should extract fields, types and required flags from class-validator and @ApiProperty decorators`
   - `should extract minLength, maxLength, min, max, isEmail and custom validation messages`
   - `should inherit fields from base DTO classes (e.g. BaseManagedUserDto -> CreateManagedUserDto and UpdateManagedUserDto)`
@@ -140,11 +140,11 @@
   - `should merge @FormFieldMeta options (label, inputType, optionsEndpoint, entityRelationProperty, order)`
   - `should mark @Masked fields as readOnly, masked and omitOnSubmit when user lacks DADOS_SENSIVEIS`
   - `should allow editing @Masked fields when user has DADOS_SENSIVEIS`
-- [ ] 3.3 Implementar `apps/backend/src/common/crud/metadata/dto-metadata.explorer.ts`:
+- [x] 3.3 Implementar `apps/backend/src/common/crud/metadata/dto-metadata.explorer.ts`:
   - Inspecionar `dtoClass` subindo pela cadeia de protótipos para coletar propriedades anotadas com `@ApiProperty` / `@ApiPropertyOptional`, `getMetadataStorage()` do `class-validator` e `@FormFieldMeta`.
   - Cruzar com `getMaskedFields(entityClass)` para aplicar restrições de `DADOS_SENSIVEIS` conforme as `userRoles`.
   - Marcar automaticamente `version` como `inputType: 'hidden'`, `hidden: true`.
-- [ ] 3.4 Anotar os DTOs e enriquecer os arquivos `*.config.ts` dos 3 módulos conforme Seção 5 da especificação:
+- [x] 3.4 Anotar os DTOs e enriquecer os arquivos `*.config.ts` dos 3 módulos conforme Seção 5 da especificação:
   - `apps/backend/src/categorias/dto/categoria.dto.ts` + `apps/backend/src/categorias/categoria.config.ts`:
     - `@FormFieldMeta` para `nome` (`label: 'Nome da Categoria'`, `order: 1`), `valor` (`label: 'Valor (R$)'`, `inputType: 'currency'`, `order: 2`), `ativo` (`label: 'Categoria Ativa'`, `inputType: 'boolean'`, `order: 3`).
     - Filtros enriquecidos em `categoriaCrudConfig` (`nome` e `ativo` como `quickFilter: true`; `valor` com `controlType: 'currency'` e `createdAt` como filtros avançados).
@@ -154,17 +154,17 @@
   - `apps/backend/src/users/dto/managed-user.dto.ts` + `apps/backend/src/users/user.config.ts`:
     - `@FormFieldMeta` para `nome` (`label: 'Nome Completo'`, `order: 1`), `email` (`label: 'E-mail'`, `inputType: 'email'`, `order: 2`), `senha` (`label: 'Senha Inicial'`, `inputType: 'password'`, `order: 3`), `perfilIds` (`label: 'Perfis de Acesso'`, `inputType: 'multiselect'`, `optionsEndpoint: '/perfis'`, `optionsValueKey: 'id'`, `optionsLabelKey: 'nome'`, `entityRelationProperty: 'perfis'`, `entityRelationValueKey: 'id'`, `order: 4`), `ativo` (`label: 'Usuário Ativo'`, `inputType: 'boolean'`, `order: 5`).
     - Filtros enriquecidos em `userCrudConfig` incluindo `nome`, `email`, `ativo` e `perfilId` (`relationField: 'perfis.id'`, `optionsEndpoint: '/perfis'`, `quickFilter: true`).
-- [ ] 3.5 Adicionar métodos `getMeta(user)`, `getFilterMeta(user)` e `getFormMeta(user)` em `CrudService` (`apps/backend/src/common/crud/crud.service.ts`) e expor os endpoints em `createCrudController` (`apps/backend/src/common/crud/create-crud-controller.ts`) **antes** de `@Get(':id')`:
+- [x] 3.5 Adicionar métodos `getMeta(user)`, `getFilterMeta(user)` e `getFormMeta(user)` em `CrudService` (`apps/backend/src/common/crud/crud.service.ts`) e expor os endpoints em `createCrudController` (`apps/backend/src/common/crud/create-crud-controller.ts`) **antes** de `@Get(':id')`:
   - `@Get('meta')` (`@Operation('${resource}:read')`) → retorna `CrudResourceMetaDto`.
   - `@Get('meta/filters')` (`@Operation('${resource}:read')`) → retorna `SearchFilterConfigDto`.
   - `@Get('meta/form')` (`@Operation('${resource}:read')`) → retorna `{ createForm: CrudFormSchemaDto; updateForm: CrudFormSchemaDto }`.
-- [ ] 3.6 **Testes** em `apps/backend/src/common/crud/create-crud-controller.spec.ts` e `apps/backend/src/crud-flow.integration.spec.ts`:
+- [x] 3.6 **Testes** em `apps/backend/src/common/crud/create-crud-controller.spec.ts` e `apps/backend/src/crud-flow.integration.spec.ts`:
   - `GET /categorias/meta should return filters, createForm and updateForm with valor marked masked/readOnly when user lacks DADOS_SENSIVEIS`
   - `GET /categorias/meta should return valor editable and filterable when user has DADOS_SENSIVEIS`
   - `GET /users/meta should include senha in createForm and exclude senha in updateForm`
   - `GET /users?perfilId=<id> should filter users by associated perfil`
   - `POST /users with duplicate email should return 409 USER_EMAIL_EXISTS with details[{ field: 'email', message }]`
-- [ ] 3.7 **Checkpoint da Fase 3**: Executar `pnpm --filter backend test && pnpm --filter backend typecheck && pnpm --filter backend lint && pnpm --filter backend build`.
+- [x] 3.7 **Checkpoint da Fase 3**: Executar `pnpm --filter backend test && pnpm --filter backend typecheck && pnpm --filter backend lint && pnpm --filter backend build`.
 
 ---
 
@@ -340,4 +340,5 @@
 - **Fase 0**: Estado inicial do monorepo validado (testes e typecheck 100% verdes). Instalados `@angular/cdk@^21.2.0` e `ngx-sonner` no workspace `frontend` e importado `@angular/cdk/overlay-prebuilt.css` em `apps/frontend/src/styles.css`. Build e testes do frontend validados com sucesso.
 - **Fase 1**: Criados e exportados os contratos compartilhados de metadados de busca (`SmartFilterBar`) e formulários dinâmicos (`CrudFormSchemaDto`, `CrudResourceMetaDto`) em `@repo/utils`, além de `FILTER_OPERATORS` e `FilterOperator`. Testes unitários e build de `@repo/utils` 100% aprovados.
 - **Fase 2**: Evoluído `BusinessException` e `AllExceptionsFilter` para suportar `details` por campo; atualizados os validadores de `CategoriasService`, `PerfisService` e `UsersService`; adicionado suporte a `relationField` e `requiredRole` em `FilterRule` e `crud-query.ts`; criado `SmartFilterMetadataService` e `ISmartFilterConfigProvider`. Testes, typecheck e lint do backend 100% aprovados.
+- **Fase 3**: Implementados `@FormFieldMeta` e `DtoMetadataExplorer` com suporte a herança de DTOs (`BaseManagedUserDto` e `createUpdateDto`) e cruzamento com `@Masked`; enriquecidos DTOs e `CrudConfig` de Categorias, Perfis e Usuários; expostos endpoints `GET /:resource/meta`, `/meta/filters` e `/meta/form` no `createCrudController`. Testes unitários, de integração, lint, typecheck e build do backend 100% aprovados.
 
