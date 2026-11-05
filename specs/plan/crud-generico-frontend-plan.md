@@ -292,29 +292,29 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seção 5), `apps/frontend/src/app/app.routes.ts`, `apps/frontend/src/app/app.html`, `apps/frontend/src/app/pages/admin/users-list.component.ts`.
 > - Skills ativas: `execute-plan`, `angular-dev`, `angular-testing`, `tailwind-design-system`, `frontend-design`.
 
-- [ ] 8.1 **Cadastro de Categorias (`/categorias`)**:
+- [x] 8.1 **Cadastro de Categorias (`/categorias`)**:
   - **Testes** em `apps/frontend/src/app/pages/categorias/categorias-page.component.spec.ts`:
     - `should configure GenericCrudPageComponent for resource categorias with Nome, Valor, Status and Criado em columns`
   - Criar `apps/frontend/src/app/pages/categorias/categorias.service.ts` (`extends GenericCrudService<CategoriaDto>`) e `apps/frontend/src/app/pages/categorias/categorias-page.component.ts`.
-- [ ] 8.2 **Cadastro de Perfis (`/perfis`)**:
+- [x] 8.2 **Cadastro de Perfis (`/perfis`)**:
   - **Testes** em `apps/frontend/src/app/pages/perfis/perfis-page.component.spec.ts`:
     - `should configure GenericCrudPageComponent for resource perfis and disable edit/delete when row.sistema is true`
   - Criar `apps/frontend/src/app/pages/perfis/perfis.service.ts` (`extends GenericCrudService<PerfilDto>`) e `apps/frontend/src/app/pages/perfis/perfis-page.component.ts` (formatando opções de `/roles` e desabilitando edição/exclusão para perfis `sistema === true`).
-- [ ] 8.3 **Cadastro de Usuários (`/admin` e `/users`)**:
+- [x] 8.3 **Cadastro de Usuários (`/admin` e `/users`)**:
   - **Testes** em `apps/frontend/src/app/pages/admin/users-list.component.spec.ts`:
     - `should render GenericCrudPageComponent for resource users with extra actions Aprovar (when inactive) and Redefinir Senha`
     - `should call activate and refresh table when clicking Aprovar`
     - `should call resetPassword and show toast when clicking Redefinir Senha`
   - Criar `apps/frontend/src/app/pages/admin/users.service.ts` (`extends GenericCrudService<UserDto>` com métodos `activate(id)` e `resetPassword(id)`).
   - Atualizar `apps/frontend/src/app/pages/admin/users-list.component.ts` para utilizar `GenericCrudPageComponent` com `SmartFilterBar`, `UiDataTable`, `UiPaginator`, Modal de criação/edição e as ações extras `Aprovar` e `Redefinir Senha`.
-- [ ] 8.4 **Rotas e Sidebar (`app.routes.ts` e `app.html`)**:
+- [x] 8.4 **Rotas e Sidebar (`app.routes.ts` e `app.html`)**:
   - Em `apps/frontend/src/app/app.routes.ts`:
     - Adicionar rota `{ path: 'categorias', component: CategoriasPageComponent, canActivate: [authGuard, roleGuard('categorias:read')] }`.
     - Adicionar rota `{ path: 'perfis', component: PerfisPageComponent, canActivate: [authGuard, roleGuard('perfis:read')] }`.
     - Manter `/admin` e adicionar alias `/users` apontando para `UsersListComponent` com `canActivate: [authGuard, roleGuard('users:read')]`.
   - Em `apps/frontend/src/app/app.html`:
     - Adicionar links na `<ui-sidebar>` para **Usuários** (`hasRole('users:read')`), **Perfis** (`hasRole('perfis:read')`) e **Categorias** (`hasRole('categorias:read')`) com ícones SVG consistentes.
-- [ ] 8.5 **Checkpoint da Fase 8**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck && pnpm --filter frontend build`.
+- [x] 8.5 **Checkpoint da Fase 8**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck && pnpm --filter frontend build`.
 
 ---
 
@@ -345,4 +345,5 @@
 - **Fase 5**: Implementados `GenericCrudService` (com serialização de paginação, multi-sort, filtros `campo__op=valor`, cache de `/meta`, `?version` em `remove` e `SKIP_GLOBAL_LOADING`), `CrudTableDataSource` (com clique simples e `Shift + Clique` para multi-sort), `UiPaginatorComponent` e `UiDataTableComponent` (linhas zebradas, prioridade de ordenação múltipla, formatação de `currency-cents`, máscara `99999`/`DADOS_SENSIVEIS`, badges e ações por linha). Testes e typecheck do frontend 100% aprovados.
 - **Fase 6**: Implementado `SmartFilterBarComponent` com suporte completo a filtros rápidos (texto, select estático/dinâmico via `optionsEndpoint`, booleano e select mestre-detalhe em cascata via `masterDetail`) e painel expansível de Filtros Avançados dinâmico (seleção de campo, operadores permitidos e inputs adaptativos incluindo intervalo `between`). Testes e typecheck do frontend 100% aprovados.
 - **Fase 7**: Implementados `GenericCrudFormComponent`, `GenericCrudFormModalComponent` e `GenericCrudPageComponent` com geração reativa de formulários a partir de `CrudFormSchemaDto`, conversão monetária em centavos, mapeamento de relações (`entityRelationProperty`), exibição de erros Nível 1 (campo) e Nível 2 (banner de negócio), e orquestração completa de listagem, criação, edição e exclusão com confirmação. Testes e typecheck do frontend 100% aprovados.
+- **Fase 8**: Implementados `CategoriasService` + `CategoriasPageComponent` (`/categorias`), `PerfisService` + `PerfisPageComponent` (`/perfis`, com bloqueio de edição/exclusão para perfis de sistema) e `UsersService` + `UsersListComponent` (`/admin` e `/users`, com ações extras `Aprovar` e `Redefinir Senha`), além da atualização de rotas (`app.routes.ts`) e links de menu na Sidebar (`app.html`). Testes, typecheck e build do frontend 100% aprovados.
 

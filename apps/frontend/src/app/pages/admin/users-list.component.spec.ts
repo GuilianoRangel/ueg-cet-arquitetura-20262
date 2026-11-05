@@ -1,36 +1,91 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
-import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { of } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../shared/components/ui/toast.service';
+import { UsersService, UserDto } from './users.service';
 import { UsersListComponent } from './users-list.component';
-import { AuthService, User } from '../../core/auth/auth.service';
 
 describe('UsersListComponent', () => {
-  let component: UsersListComponent;
   let fixture: ComponentFixture<UsersListComponent>;
-  
-  const mockUsers: User[] = [
-    { id: '1', email: 'admin@ueg.br', nome: 'Admin User', ativo: true, perfis: [{ id: 'p1', nome: 'Administrador' }] },
-    { id: '2', email: 'pending@ueg.br', nome: 'Pending User', ativo: false, perfis: [] }
-  ];
-
-  const mockAuthService = {
-    getUsers: vi.fn(),
-    activateUser: vi.fn(),
-    resetUserPassword: vi.fn()
+  let component: UsersListComponent;
+  let usersServiceMock: {
+    getMeta: ReturnType<typeof vi.fn>;
+    findAll: ReturnType<typeof vi.fn>;
+    activate: ReturnType<typeof vi.fn>;
+    resetPassword: ReturnType<typeof vi.fn>;
+  };
+  let toastServiceMock: {
+    success: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
   };
 
+  const mockUsers: UserDto[] = [
+    {
+      id: '1',
+      email: 'admin@ueg.br',
+      nome: 'Admin User',
+      ativo: true,
+      perfis: [{ id: 'p1', nome: 'Administrador' }],
+      version: 1,
+    },
+    {
+      id: '2',
+      email: 'pending@ueg.br',
+      nome: 'Pending User',
+      ativo: false,
+      perfis: [],
+      version: 1,
+    },
+  ];
+
   beforeEach(async () => {
-    vi.clearAllMocks();
-    mockAuthService.getUsers.mockReturnValue(of(mockUsers));
-    mockAuthService.activateUser.mockReturnValue(of({ id: '2', ativo: true }));
-    mockAuthService.resetUserPassword.mockReturnValue(of({ message: 'E-mail de recuperação de senha enviado com sucesso!' }));
+    usersServiceMock = {
+      getMeta: vi.fn().mockReturnValue(
+        of({
+          resource: 'users',
+          filters: { resource: 'users', fields: [] },
+          createForm: { mode: 'create', fields: [] },
+          updateForm: { mode: 'update', fields: [] },
+        }),
+      ),
+      findAll: vi.fn().mockReturnValue(
+        of({
+          items: mockUsers,
+          total: mockUsers.length,
+          page: 1,
+          limit: 10,
+        }),
+      ),
+      activate: vi.fn().mockReturnValue(
+        of({ ...mockUsers[1], ativo: true, version: 2 }),
+      ),
+      resetPassword: vi.fn().mockReturnValue(
+        of({ message: 'E-mail de recuperação de senha enviado com sucesso!' }),
+      ),
+    };
+
+    toastServiceMock = {
+      success: vi.fn(),
+      error: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
-      imports: [UsersListComponent, FormsModule],
+      imports: [UsersListComponent],
       providers: [
-        { provide: AuthService, useValue: mockAuthService }
-      ]
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: UsersService, useValue: usersServiceMock },
+        { provide: ToastService, useValue: toastServiceMock },
+        {
+          provide: AuthService,
+          useValue: {
+            hasRole: vi.fn().mockReturnValue(true),
+          },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(UsersListComponent);
@@ -38,53 +93,39 @@ describe('UsersListComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create the component', () => {
-    expect(component).toBeTruthy();
+  it('should render GenericCrudPageComponent for resource users with extra actions Aprovar (when inactive) and Redefinir Senha', () => {
+    expect(component.pageConfig.resource).toBe('users');
+    expect(component.pageConfig.entityLabel).toBe('Usuário');
+
+    const extraActions = component.pageConfig.extraRowActions ?? [];
+    const aprovarAction = extraActions.find((a) => a.id === 'activate');
+    const resetAction = extraActions.find((a) => a.id === 'reset-password');
+
+    expect(aprovarAction).toBeDefined();
+    expect(aprovarAction?.permission).toBe('users:activate');
+    expect(aprovarAction?.visible?.(mockUsers[0])).toBe(false);
+    expect(aprovarAction?.visible?.(mockUsers[1])).toBe(true);
+
+    expect(resetAction).toBeDefined();
+    expect(resetAction?.permission).toBe('users:update');
   });
 
-  it('should load users on init', () => {
-    expect(mockAuthService.getUsers).toHaveBeenCalled();
-    expect(component.usersList()).toEqual(mockUsers);
-    expect(component.filteredUsers()).toEqual(mockUsers);
+  it('should call activate and refresh table when clicking Aprovar', () => {
+    usersServiceMock.findAll.mockClear();
+
+    component.activateUser(mockUsers[1]);
+
+    expect(usersServiceMock.activate).toHaveBeenCalledWith('2');
+    expect(toastServiceMock.success).toHaveBeenCalled();
+    expect(usersServiceMock.findAll).toHaveBeenCalledTimes(1);
   });
 
-  it('should filter users based on query search input', () => {
-    component.searchQuery.set('pending');
-    fixture.detectChanges();
+  it('should call resetPassword and show toast when clicking Redefinir Senha', () => {
+    component.resetPassword(mockUsers[0]);
 
-    const filtered = component.filteredUsers();
-    expect(filtered.length).toBe(1);
-    expect(filtered[0].nome).toBe('Pending User');
-
-    component.searchQuery.set('admin@ueg.br');
-    fixture.detectChanges();
-    expect(component.filteredUsers().length).toBe(1);
-    expect(component.filteredUsers()[0].nome).toBe('Admin User');
-
-    component.searchQuery.set('non-existing');
-    fixture.detectChanges();
-    expect(component.filteredUsers().length).toBe(0);
-  });
-
-  it('should call activateUser and refresh list on approval click', () => {
-    component.activateUser('2');
-
-    expect(mockAuthService.activateUser).toHaveBeenCalledWith('2');
-    expect(mockAuthService.getUsers).toHaveBeenCalledTimes(2); // Initial + reload
-    expect(component.successMsg()).toContain('ativado com sucesso');
-  });
-
-  it('should call resetUserPassword on reset action click', () => {
-    component.resetPassword('1');
-
-    expect(mockAuthService.resetUserPassword).toHaveBeenCalledWith('1');
-    expect(component.successMsg()).toContain('E-mail de recuperação de senha enviado');
-  });
-
-  it('should handle API failure gracefully', () => {
-    mockAuthService.getUsers.mockReturnValue(throwError(() => ({ error: { message: 'Não autorizado' } })));
-    component.loadUsers();
-
-    expect(component.errorMsg()).toContain('Não autorizado');
+    expect(usersServiceMock.resetPassword).toHaveBeenCalledWith('1');
+    expect(toastServiceMock.success).toHaveBeenCalledWith(
+      'E-mail de recuperação de senha enviado com sucesso!',
+    );
   });
 });

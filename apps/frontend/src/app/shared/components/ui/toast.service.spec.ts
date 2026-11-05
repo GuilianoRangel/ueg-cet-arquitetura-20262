@@ -3,26 +3,21 @@ import { TestBed } from '@angular/core/testing';
 import { toast as sonnerToast } from 'ngx-sonner';
 import { ToastService } from './toast.service';
 
-vi.mock('ngx-sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-  },
-}));
-
 describe('ToastService', () => {
   let service: ToastService;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.clearAllMocks();
+    vi.spyOn(sonnerToast, 'success').mockImplementation(() => '');
+    vi.spyOn(sonnerToast, 'error').mockImplementation(() => '');
+    vi.spyOn(sonnerToast, 'info').mockImplementation(() => '');
+    vi.spyOn(sonnerToast, 'warning').mockImplementation(() => '');
     TestBed.configureTestingModule({});
     service = TestBed.inject(ToastService);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -39,9 +34,9 @@ describe('ToastService', () => {
       'Salvo com sucesso',
       expect.objectContaining({ duration: 3000 }),
     );
-    expect(service.toasts().some((t) => t.message === 'Salvo com sucesso')).toBe(
-      true,
-    );
+    expect(
+      service.toasts().some((t) => t.message === 'Salvo com sucesso'),
+    ).toBe(true);
 
     service.error('Erro ao salvar');
     expect(sonnerToast.error).toHaveBeenCalledWith(
