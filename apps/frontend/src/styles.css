@@ -1,4 +1,5 @@
 @import "tailwindcss" source("./app");
+@import "@angular/cdk/overlay-prebuilt.css";
 
 @theme {
   /* === PALETA UEG === */
