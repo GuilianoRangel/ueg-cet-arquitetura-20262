@@ -1,0 +1,37 @@
+<div
+  class="bg-card text-foreground border border-border rounded-2xl shadow-xl p-6 max-w-md w-full flex flex-col gap-4"
+  role="alertdialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="'confirm-dialog-title'"
+  [attr.aria-describedby]="'confirm-dialog-desc'"
+>
+  <div class="flex flex-col gap-1.5">
+    <h2 id="confirm-dialog-title" class="text-lg font-semibold text-foreground">
+      {{ data.title }}
+    </h2>
+    <p id="confirm-dialog-desc" class="text-sm text-muted-foreground">
+      {{ data.message }}
+    </p>
+  </div>
+
+  <div class="flex items-center justify-end gap-3 pt-2">
+    <button
+      type="button"
+      ui-button
+      variant="outline"
+      data-testid="confirm-dialog-cancel"
+      (click)="onCancel()"
+    >
+      {{ data.cancelText || 'Cancelar' }}
+    </button>
+    <button
+      type="button"
+      ui-button
+      [variant]="data.variant === 'destructive' ? 'destructive' : 'default'"
+      data-testid="confirm-dialog-confirm"
+      (click)="onConfirm()"
+    >
+      {{ data.confirmText || 'Confirmar' }}
+    </button>
+  </div>
+</div>

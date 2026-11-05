@@ -5,10 +5,11 @@ import { AuthService } from './core/auth/auth.service';
 import { ShellComponent } from './shared/components/layout/shell.component';
 import { SidebarComponent } from './shared/components/layout/sidebar.component';
 import { ToastComponent } from './shared/components/ui/toast.component';
+import { UiLoadingOverlayComponent } from './shared/components/ui/loading-overlay.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, HeaderComponent, ShellComponent, SidebarComponent, RouterLink, RouterLinkActive, ToastComponent],
+  imports: [RouterOutlet, HeaderComponent, ShellComponent, SidebarComponent, RouterLink, RouterLinkActive, ToastComponent, UiLoadingOverlayComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

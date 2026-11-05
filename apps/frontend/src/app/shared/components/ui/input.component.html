@@ -13,13 +13,13 @@
       [disabled]="disabled()"
       [value]="value()"
       (input)="onInputChange($event)"
-      (blur)="onTouched()"
+      (blur)="handleBlur()"
       [class]="inputClasses()"
-      [attr.aria-invalid]="!!error()"
+      [attr.aria-invalid]="!!displayError()"
     />
   </div>
   
-  @if (error()) {
-    <p class="text-sm text-destructive font-medium">{{ error() }}</p>
+  @if (displayError()) {
+    <p class="text-sm text-destructive font-medium" data-testid="field-error">{{ displayError() }}</p>
   }
 </div>

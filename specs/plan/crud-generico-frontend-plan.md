@@ -174,38 +174,38 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seções 6.1, 6.2 e 6.3), `apps/frontend/src/app/app.config.ts`, `apps/frontend/src/app/app.html`, `apps/frontend/src/app/shared/components/ui/toast.service.ts`, `apps/frontend/src/app/shared/components/ui/toast.component.ts`, `apps/frontend/src/app/core/auth/auth.interceptor.ts`.
 > - Skills ativas: `execute-plan`, `angular-dev`, `angular-testing`, `tailwind-design-system`.
 
-- [ ] 4.1 **Testes** em `apps/frontend/src/app/core/loading/loading.service.spec.ts` e `loading.interceptor.spec.ts`:
+- [x] 4.1 **Testes** em `apps/frontend/src/app/core/loading/loading.service.spec.ts` e `loading.interceptor.spec.ts`:
   - `should increment active requests on show() and decrement on hide()`
   - `should only set isLoading to true after 150ms debounce to avoid flicker on fast requests`
   - `should immediately cancel pending debounce timer if hide() is called before 150ms`
   - `loadingInterceptor should trigger LoadingService by default on HTTP requests`
   - `loadingInterceptor should NOT trigger LoadingService when SKIP_GLOBAL_LOADING is true in HttpContext`
-- [ ] 4.2 Criar `apps/frontend/src/app/core/loading/loading.service.ts`, `apps/frontend/src/app/core/loading/loading.interceptor.ts` e `apps/frontend/src/app/shared/components/ui/loading-overlay.component.ts` (`<ui-loading-overlay>`):
+- [x] 4.2 Criar `apps/frontend/src/app/core/loading/loading.service.ts`, `apps/frontend/src/app/core/loading/loading.interceptor.ts` e `apps/frontend/src/app/shared/components/ui/loading-overlay.component.ts` (`<ui-loading-overlay>`):
   - Exportar `SKIP_GLOBAL_LOADING` e função helper `withSkipGlobalLoading(context?: HttpContext): HttpContext`.
   - Renderizar `<ui-loading-overlay>` em `apps/frontend/src/app/app.html` e registrar `loadingInterceptor` em `apps/frontend/src/app/app.config.ts`.
-- [ ] 4.3 **Testes** em `apps/frontend/src/app/shared/components/ui/toast.service.spec.ts`:
+- [x] 4.3 **Testes** em `apps/frontend/src/app/shared/components/ui/toast.service.spec.ts`:
   - `should expose success, error, info and warning methods`
   - `should maintain reactive toasts signal and delegate to ngx-sonner`
-- [ ] 4.4 Atualizar `apps/frontend/src/app/shared/components/ui/toast.service.ts` e `toast.component.ts`:
+- [x] 4.4 Atualizar `apps/frontend/src/app/shared/components/ui/toast.service.ts` e `toast.component.ts`:
   - Encapsular `ngx-sonner` (`toast` e `<ngx-sonner-toaster>`) mantendo a API pública `success`, `error`, `info`, `warning` e o signal `toasts` para compatibilidade total com componentes e testes existentes.
-- [ ] 4.5 **Testes** em `apps/frontend/src/app/shared/components/ui/dialog/ui-dialog.service.spec.ts`:
+- [x] 4.5 **Testes** em `apps/frontend/src/app/shared/components/ui/dialog/ui-dialog.service.spec.ts`:
   - `open should open a component inside CDK Dialog with UEG Design System panel classes`
   - `confirm should open UiConfirmDialogComponent and emit true when confirmed and false when cancelled`
-- [ ] 4.6 Criar o módulo encapsulado de Dialog em `apps/frontend/src/app/shared/components/ui/dialog/`:
+- [x] 4.6 Criar o módulo encapsulado de Dialog em `apps/frontend/src/app/shared/components/ui/dialog/`:
   - `ui-dialog.types.ts` (`UiDialogConfig`, `UiConfirmOptions`, `UiDialogRef`)
   - `ui-confirm-dialog.component.ts` (Modal de confirmação com título, descrição, botão cancelar e botão confirmar com variante `destructive` ou `default`)
   - `ui-dialog.service.ts` (encapsulando `Dialog` do `@angular/cdk/dialog` sem expor o CDK diretamente para as telas).
-- [ ] 4.7 **Testes** em `apps/frontend/src/app/core/errors/form-error-handler.service.spec.ts` e `error.interceptor.spec.ts`:
+- [x] 4.7 **Testes** em `apps/frontend/src/app/core/errors/form-error-handler.service.spec.ts` e `error.interceptor.spec.ts`:
   - `should classify 400 VALIDATION_ERROR with details as level 1 field errors`
   - `should classify 409 USER_EMAIL_EXISTS with details (or via fallback map) as level 1 field error on email control`
   - `should apply serverError to matching FormControls and clear serverError when control value changes`
   - `should classify 409 USER_LAST_ADMIN or PERFIL_IN_USE without field as level 2 business error and return banner message`
   - `errorInterceptor should catch status >= 500, status === 0 or unknown format as level 3 unexpected error and display friendly Toast`
-- [ ] 4.8 Criar `apps/frontend/src/app/core/errors/form-error-handler.service.ts` e `apps/frontend/src/app/core/errors/error.interceptor.ts`:
+- [x] 4.8 Criar `apps/frontend/src/app/core/errors/form-error-handler.service.ts` e `apps/frontend/src/app/core/errors/error.interceptor.ts`:
   - Implementar a classificação e aplicação de erros em `FormGroup` (Nível 1: Campo; Nível 2: Negócio Geral; Nível 3: Inesperado 500/Rede).
   - Atualizar `apps/frontend/src/app/shared/components/ui/input.component.ts` (+ template) para ler automaticamente o erro do `FormControl` associado (ou via input `[error]`) exibindo a mensagem de `serverError` ou das validações locais abaixo do campo.
   - Registrar `errorInterceptor` em `apps/frontend/src/app/app.config.ts`.
-- [ ] 4.9 **Checkpoint da Fase 4**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
+- [x] 4.9 **Checkpoint da Fase 4**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
 
 ---
 
@@ -341,4 +341,5 @@
 - **Fase 1**: Criados e exportados os contratos compartilhados de metadados de busca (`SmartFilterBar`) e formulários dinâmicos (`CrudFormSchemaDto`, `CrudResourceMetaDto`) em `@repo/utils`, além de `FILTER_OPERATORS` e `FilterOperator`. Testes unitários e build de `@repo/utils` 100% aprovados.
 - **Fase 2**: Evoluído `BusinessException` e `AllExceptionsFilter` para suportar `details` por campo; atualizados os validadores de `CategoriasService`, `PerfisService` e `UsersService`; adicionado suporte a `relationField` e `requiredRole` em `FilterRule` e `crud-query.ts`; criado `SmartFilterMetadataService` e `ISmartFilterConfigProvider`. Testes, typecheck e lint do backend 100% aprovados.
 - **Fase 3**: Implementados `@FormFieldMeta` e `DtoMetadataExplorer` com suporte a herança de DTOs (`BaseManagedUserDto` e `createUpdateDto`) e cruzamento com `@Masked`; enriquecidos DTOs e `CrudConfig` de Categorias, Perfis e Usuários; expostos endpoints `GET /:resource/meta`, `/meta/filters` e `/meta/form` no `createCrudController`. Testes unitários, de integração, lint, typecheck e build do backend 100% aprovados.
+- **Fase 4**: Implementados `LoadingService` (singleton com debounce de 150ms), `loadingInterceptor` (com suporte a `SKIP_GLOBAL_LOADING`) e `<ui-loading-overlay>`; encapsulado `ngx-sonner` no `ToastService` e `ToastComponent` mantendo compatibilidade com signal `toasts`; criado módulo encapsulado de dialogs (`UiDialogService` e `UiConfirmDialogComponent` sobre `@angular/cdk/dialog`); implementados `FormErrorHandlerService` e `errorInterceptor` para tratamento padronizado de erros em 3 níveis e leitura automática de erros no `<ui-input>`. Testes e typecheck do frontend 100% aprovados.
 
