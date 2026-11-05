@@ -49,12 +49,12 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seções 3.1, 3.2 e 3.3), `packages/utils/src/index.ts`, `packages/utils/src/contracts/pagination.ts`, `packages/utils/src/contracts/api-error.ts`.
 > - Skills ativas: `execute-plan`, `clean-code`.
 
-- [ ] 1.1 **Testes** em `packages/utils/src/contracts/contracts.spec.ts` (adicionar cenários antes de implementar):
+- [x] 1.1 **Testes** em `packages/utils/src/contracts/contracts.spec.ts` (adicionar cenários antes de implementar):
   - `should export FILTER_OPERATORS containing eq, ne, like, gt, gte, lt, lte, in, between`
   - `should validate structure of SearchFilterConfigDto, SmartFilterFieldMeta and MasterDetailFilterConfig`
   - `should validate structure of CrudFormSchemaDto, CrudFormFieldSchema and CrudResourceMetaDto`
-- [ ] 1.2 Em `packages/utils/src/contracts/pagination.ts`, exportar a constante `FILTER_OPERATORS = ['eq', 'ne', 'like', 'gt', 'gte', 'lt', 'lte', 'in', 'between'] as const` e o tipo `export type FilterOperator = (typeof FILTER_OPERATORS)[number];`.
-- [ ] 1.3 Criar `packages/utils/src/contracts/crud-meta.ts` contendo todas as interfaces compartilhadas definidas nas Seções 3.2 e 3.3 da especificação:
+- [x] 1.2 Em `packages/utils/src/contracts/pagination.ts`, exportar a constante `FILTER_OPERATORS = ['eq', 'ne', 'like', 'gt', 'gte', 'lt', 'lte', 'in', 'between'] as const` e o tipo `export type FilterOperator = (typeof FILTER_OPERATORS)[number];`.
+- [x] 1.3 Criar `packages/utils/src/contracts/crud-meta.ts` contendo todas as interfaces compartilhadas definidas nas Seções 3.2 e 3.3 da especificação:
   - `FilterFieldType` (`'string' | 'number' | 'boolean' | 'date' | 'uuid'`)
   - `FilterControlType` (`'text' | 'number' | 'currency' | 'boolean' | 'date' | 'select' | 'multiselect' | 'master-detail'`)
   - `FilterOptionItem` (`{ label: string; value: string | number | boolean }`)
@@ -66,8 +66,8 @@
   - `CrudFormFieldSchema` (`name`, `label`, `inputType`, `required`, `defaultValue?`, `placeholder?`, `description?`, `order`, `hidden`, `readOnly`, `masked?`, `omitOnSubmit?`, `requiredRole?`, `validations`, `options?`, `optionsEndpoint?`, `optionsValueKey?`, `optionsLabelKey?`, `entityRelationProperty?`, `entityRelationValueKey?`)
   - `CrudFormSchemaDto` (`{ mode: 'create' | 'update'; fields: CrudFormFieldSchema[] }`)
   - `CrudResourceMetaDto` (`{ resource: string; filters: SearchFilterConfigDto; createForm: CrudFormSchemaDto; updateForm: CrudFormSchemaDto }`)
-- [ ] 1.4 Exportar `crud-meta.ts` em `packages/utils/src/index.ts`.
-- [ ] 1.5 **Checkpoint da Fase 1**: Executar `pnpm --filter @repo/utils test && pnpm --filter @repo/utils build` e garantir 100% de aprovação.
+- [x] 1.4 Exportar `crud-meta.ts` em `packages/utils/src/index.ts`.
+- [x] 1.5 **Checkpoint da Fase 1**: Executar `pnpm --filter @repo/utils test && pnpm --filter @repo/utils build` e garantir 100% de aprovação.
 
 ---
 
@@ -338,4 +338,5 @@
 
 ## Observações (Preencher ao final de cada Fase)
 - **Fase 0**: Estado inicial do monorepo validado (testes e typecheck 100% verdes). Instalados `@angular/cdk@^21.2.0` e `ngx-sonner` no workspace `frontend` e importado `@angular/cdk/overlay-prebuilt.css` em `apps/frontend/src/styles.css`. Build e testes do frontend validados com sucesso.
+- **Fase 1**: Criados e exportados os contratos compartilhados de metadados de busca (`SmartFilterBar`) e formulários dinâmicos (`CrudFormSchemaDto`, `CrudResourceMetaDto`) em `@repo/utils`, além de `FILTER_OPERATORS` e `FilterOperator`. Testes unitários e build de `@repo/utils` 100% aprovados.
 

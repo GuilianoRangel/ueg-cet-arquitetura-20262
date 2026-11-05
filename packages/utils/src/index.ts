@@ -7,3 +7,4 @@ export * from "./contracts/pagination";
 export * from "./contracts/error-codes";
 export * from "./contracts/permissions";
 export * from "./contracts/entities";
+export * from "./contracts/crud-meta";

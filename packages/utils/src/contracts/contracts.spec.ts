@@ -5,6 +5,14 @@ import {
   MASK_DEFAULT_NUMERIC,
   ROLE_FORMAT,
   ERROR_CODES,
+  FILTER_OPERATORS,
+  FilterOperator,
+  SearchFilterConfigDto,
+  SmartFilterFieldMeta,
+  MasterDetailFilterConfig,
+  CrudFormSchemaDto,
+  CrudFormFieldSchema,
+  CrudResourceMetaDto,
 } from "../index";
 
 describe("Contracts", () => {
@@ -60,5 +68,125 @@ describe("Contracts", () => {
     for (const code of expectedCodes) {
       expect(ERROR_CODES).toHaveProperty(code, code);
     }
+  });
+
+  it("should export FILTER_OPERATORS containing eq, ne, like, gt, gte, lt, lte, in, between", () => {
+    const expectedOperators: FilterOperator[] = [
+      "eq",
+      "ne",
+      "like",
+      "gt",
+      "gte",
+      "lt",
+      "lte",
+      "in",
+      "between",
+    ];
+    expect(FILTER_OPERATORS).toEqual(expectedOperators);
+  });
+
+  it("should validate structure of SearchFilterConfigDto, SmartFilterFieldMeta and MasterDetailFilterConfig", () => {
+    const masterDetail: MasterDetailFilterConfig = {
+      parentField: "perfilId",
+      parentLabel: "Perfil",
+      parentEndpoint: "/perfis",
+      parentValueKey: "id",
+      parentLabelKey: "nome",
+      childEndpoint: "/roles",
+      parentParamName: "perfilId",
+      childValueKey: "code",
+      childLabelKey: "label",
+    };
+
+    const fieldMeta: SmartFilterFieldMeta = {
+      field: "nome",
+      label: "Nome",
+      type: "string",
+      controlType: "text",
+      operators: ["eq", "like"],
+      defaultOperator: "like",
+      quickFilter: true,
+      placeholder: "Buscar por nome...",
+      options: [{ label: "Ativo", value: true }],
+      optionsEndpoint: "/perfis",
+      optionsValueKey: "id",
+      optionsLabelKey: "nome",
+      masterDetail,
+      requiredRole: "DADOS_SENSIVEIS",
+    };
+
+    const config: SearchFilterConfigDto = {
+      resource: "users",
+      fields: [fieldMeta],
+    };
+
+    expect(config.resource).toBe("users");
+    expect(config.fields).toHaveLength(1);
+    expect(config.fields[0].masterDetail?.parentField).toBe("perfilId");
+  });
+
+  it("should validate structure of CrudFormSchemaDto, CrudFormFieldSchema and CrudResourceMetaDto", () => {
+    const formField: CrudFormFieldSchema = {
+      name: "nome",
+      label: "Nome Completo",
+      inputType: "text",
+      required: true,
+      defaultValue: "",
+      placeholder: "Digite o nome",
+      description: "Nome do usuário",
+      order: 1,
+      hidden: false,
+      readOnly: false,
+      masked: false,
+      omitOnSubmit: false,
+      requiredRole: "DADOS_SENSIVEIS",
+      validations: [
+        { type: "required", message: "Nome é obrigatório" },
+        { type: "maxLength", value: 100, message: "Máximo 100 caracteres" },
+      ],
+      options: [{ label: "Opção 1", value: "1" }],
+      optionsEndpoint: "/perfis",
+      optionsValueKey: "id",
+      optionsLabelKey: "nome",
+      entityRelationProperty: "perfis",
+      entityRelationValueKey: "id",
+    };
+
+    const createForm: CrudFormSchemaDto = {
+      mode: "create",
+      fields: [formField],
+    };
+
+    const updateForm: CrudFormSchemaDto = {
+      mode: "update",
+      fields: [
+        formField,
+        {
+          name: "version",
+          label: "Version",
+          inputType: "hidden",
+          required: true,
+          order: 99,
+          hidden: true,
+          readOnly: false,
+          validations: [{ type: "required" }, { type: "int" }],
+        },
+      ],
+    };
+
+    const meta: CrudResourceMetaDto = {
+      resource: "users",
+      filters: {
+        resource: "users",
+        fields: [],
+      },
+      createForm,
+      updateForm,
+    };
+
+    expect(meta.resource).toBe("users");
+    expect(meta.createForm.mode).toBe("create");
+    expect(meta.updateForm.mode).toBe("update");
+    expect(meta.updateForm.fields).toHaveLength(2);
   });
 });
