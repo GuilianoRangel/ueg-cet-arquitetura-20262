@@ -1,0 +1,322 @@
+@if (config(); as cfg) {
+  <div class="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col gap-4">
+    <!-- Barra Principal (Filtros Rápidos) -->
+    <div class="flex flex-wrap items-end gap-3">
+      @for (field of quickFields(); track field.field) {
+        @switch (field.controlType) {
+          @case ('text') {
+            <div class="flex flex-col gap-1 min-w-[200px] flex-1">
+              <label
+                [for]="'qf-' + field.field"
+                class="text-xs font-medium text-muted-foreground"
+              >
+                {{ field.label }}
+              </label>
+              <div class="relative">
+                <input
+                  [id]="'qf-' + field.field"
+                  type="text"
+                  [placeholder]="field.placeholder || 'Buscar por ' + field.label.toLowerCase() + '...'"
+                  [value]="getQuickValue(field.field)"
+                  [attr.data-testid]="'quick-filter-' + field.field"
+                  (input)="onQuickInputChange(field.field, $event)"
+                  (keydown.enter)="onSearch()"
+                  class="flex h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <svg
+                  class="w-4 h-4 text-muted-foreground absolute left-3 top-3 pointer-events-none"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z"
+                  />
+                </svg>
+              </div>
+            </div>
+          }
+
+          @case ('select') {
+            <div class="flex flex-col gap-1 min-w-[170px]">
+              <label
+                [for]="'qf-' + field.field"
+                class="text-xs font-medium text-muted-foreground"
+              >
+                {{ field.label }}
+              </label>
+              <select
+                [id]="'qf-' + field.field"
+                [value]="getQuickValue(field.field)"
+                [attr.data-testid]="'quick-filter-' + field.field"
+                (change)="onQuickSelectChange(field.field, $event)"
+                class="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Todos</option>
+                @for (opt of getFieldOptions(field); track opt.value) {
+                  <option [value]="opt.value" [selected]="String(opt.value) === getQuickValue(field.field)">
+                    {{ opt.label }}
+                  </option>
+                }
+              </select>
+            </div>
+          }
+
+          @case ('boolean') {
+            <div class="flex flex-col gap-1 min-w-[150px]">
+              <label
+                [for]="'qf-' + field.field"
+                class="text-xs font-medium text-muted-foreground"
+              >
+                {{ field.label }}
+              </label>
+              <select
+                [id]="'qf-' + field.field"
+                [value]="getQuickValue(field.field)"
+                [attr.data-testid]="'quick-filter-' + field.field"
+                (change)="onQuickSelectChange(field.field, $event)"
+                class="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Todos</option>
+                @for (opt of getFieldOptions(field); track opt.value) {
+                  <option [value]="opt.value" [selected]="String(opt.value) === getQuickValue(field.field)">
+                    {{ opt.label }}
+                  </option>
+                }
+              </select>
+            </div>
+          }
+
+          @case ('master-detail') {
+            @if (field.masterDetail; as md) {
+              <!-- Select Mestre -->
+              <div class="flex flex-col gap-1 min-w-[170px]">
+                <label
+                  [for]="'qf-master-' + field.field"
+                  class="text-xs font-medium text-muted-foreground"
+                >
+                  {{ md.parentLabel }}
+                </label>
+                <select
+                  [id]="'qf-master-' + field.field"
+                  [value]="getMasterValue(field.field)"
+                  [attr.data-testid]="'quick-filter-master-' + field.field"
+                  (change)="onMasterSelectChange(field, $event)"
+                  class="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Todos</option>
+                  @for (opt of getMasterOptions(field.field); track opt.value) {
+                    <option [value]="opt.value" [selected]="String(opt.value) === getMasterValue(field.field)">
+                      {{ opt.label }}
+                    </option>
+                  }
+                </select>
+              </div>
+
+              <!-- Select Detalhe -->
+              <div class="flex flex-col gap-1 min-w-[170px]">
+                <label
+                  [for]="'qf-detail-' + field.field"
+                  class="text-xs font-medium text-muted-foreground"
+                >
+                  {{ field.label }}
+                </label>
+                <select
+                  [id]="'qf-detail-' + field.field"
+                  [value]="getQuickValue(field.field)"
+                  [disabled]="!getMasterValue(field.field)"
+                  [attr.data-testid]="'quick-filter-detail-' + field.field"
+                  (change)="onQuickSelectChange(field.field, $event)"
+                  class="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Todos</option>
+                  @for (opt of getChildOptions(field.field); track opt.value) {
+                    <option [value]="opt.value" [selected]="String(opt.value) === getQuickValue(field.field)">
+                      {{ opt.label }}
+                    </option>
+                  }
+                </select>
+              </div>
+            }
+          }
+        }
+      }
+
+      <!-- Botões de Ação -->
+      <div class="flex items-center gap-2 ml-auto">
+        <button
+          type="button"
+          ui-button
+          variant="default"
+          data-testid="smart-filter-search"
+          (click)="onSearch()"
+        >
+          Buscar
+        </button>
+
+        <button
+          type="button"
+          ui-button
+          variant="ghost"
+          data-testid="smart-filter-clear"
+          (click)="onClear()"
+        >
+          Limpar
+        </button>
+
+        <button
+          type="button"
+          ui-button
+          variant="outline"
+          data-testid="smart-filter-toggle-advanced"
+          (click)="toggleAdvancedPanel()"
+          class="gap-2"
+        >
+          <span>Filtros Avançados</span>
+          @if (activeAdvancedCount() > 0) {
+            <ui-badge variant="info">{{ activeAdvancedCount() }}</ui-badge>
+          }
+        </button>
+      </div>
+    </div>
+
+    <!-- Painel de Filtros Avançados (Expansível) -->
+    @if (advancedOpen()) {
+      <div
+        class="border-t border-border pt-4 flex flex-col gap-3"
+        data-testid="advanced-filters-panel"
+      >
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Condições de Busca Avançada
+          </h3>
+          <button
+            type="button"
+            ui-button
+            variant="outline"
+            size="sm"
+            data-testid="advanced-filter-add"
+            (click)="addAdvancedRow()"
+          >
+            + Adicionar condição
+          </button>
+        </div>
+
+        @for (row of advancedRows(); track row.id; let idx = $index) {
+          @let selectedField = getFieldMeta(row.field);
+          <div class="flex flex-wrap items-center gap-2 bg-muted/20 p-2.5 rounded-lg border border-border">
+            <!-- 1. Seletor de Campo -->
+            <select
+              [value]="row.field"
+              [attr.data-testid]="'adv-field-' + idx"
+              (change)="onAdvancedFieldChange(idx, $event)"
+              class="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground min-w-[160px]"
+            >
+              @for (f of cfg.fields; track f.field) {
+                <option [value]="f.field" [selected]="f.field === row.field">
+                  {{ f.label }}
+                </option>
+              }
+            </select>
+
+            <!-- 2. Seletor de Operador -->
+            <select
+              [value]="row.operator"
+              [attr.data-testid]="'adv-operator-' + idx"
+              (change)="onAdvancedOperatorChange(idx, $event)"
+              class="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground min-w-[160px]"
+            >
+              @if (selectedField) {
+                @for (op of selectedField.operators; track op) {
+                  <option [value]="op" [selected]="op === row.operator">
+                    {{ getOperatorLabel(op) }}
+                  </option>
+                }
+              }
+            </select>
+
+            <!-- 3. Input(s) de Valor -->
+            @if (row.operator === 'between') {
+              <div class="flex items-center gap-2 flex-1 min-w-[220px]">
+                <input
+                  [type]="getAdvancedInputType(selectedField)"
+                  placeholder="Valor inicial"
+                  [value]="row.valueStart"
+                  [attr.data-testid]="'adv-value-start-' + idx"
+                  (input)="onAdvancedValueStartChange(idx, $event)"
+                  class="h-9 flex-1 rounded-md border border-border bg-background px-3 text-sm text-foreground"
+                />
+                <span class="text-xs text-muted-foreground">até</span>
+                <input
+                  [type]="getAdvancedInputType(selectedField)"
+                  placeholder="Valor final"
+                  [value]="row.valueEnd"
+                  [attr.data-testid]="'adv-value-end-' + idx"
+                  (input)="onAdvancedValueEndChange(idx, $event)"
+                  class="h-9 flex-1 rounded-md border border-border bg-background px-3 text-sm text-foreground"
+                />
+              </div>
+            } @else if (
+              selectedField &&
+              (selectedField.controlType === 'select' ||
+                selectedField.controlType === 'boolean')
+            ) {
+              <select
+                [value]="row.value"
+                [attr.data-testid]="'adv-value-' + idx"
+                (change)="onAdvancedValueChange(idx, $event)"
+                class="h-9 flex-1 min-w-[180px] rounded-md border border-border bg-background px-3 text-sm text-foreground"
+              >
+                <option value="">Selecione...</option>
+                @for (opt of getFieldOptions(selectedField); track opt.value) {
+                  <option [value]="opt.value" [selected]="String(opt.value) === row.value">
+                    {{ opt.label }}
+                  </option>
+                }
+              </select>
+            } @else {
+              <input
+                [type]="getAdvancedInputType(selectedField)"
+                placeholder="Informe o valor..."
+                [value]="row.value"
+                [attr.data-testid]="'adv-value-' + idx"
+                (input)="onAdvancedValueChange(idx, $event)"
+                class="h-9 flex-1 min-w-[180px] rounded-md border border-border bg-background px-3 text-sm text-foreground"
+              />
+            }
+
+            <!-- 4. Botão Remover linha -->
+            <button
+              type="button"
+              ui-button
+              variant="ghost"
+              size="sm"
+              [attr.data-testid]="'adv-remove-' + idx"
+              (click)="removeAdvancedRow(idx)"
+              aria-label="Remover condição"
+            >
+              ✕
+            </button>
+          </div>
+        }
+
+        <div class="flex justify-end pt-1">
+          <button
+            type="button"
+            ui-button
+            variant="default"
+            size="sm"
+            data-testid="advanced-filter-apply"
+            (click)="onSearch()"
+          >
+            Aplicar Filtros
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}

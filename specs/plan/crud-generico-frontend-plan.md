@@ -248,15 +248,15 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seção 4.4), `packages/utils/src/contracts/crud-meta.ts`.
 > - Skills ativas: `execute-plan`, `angular-dev`, `angular-testing`, `tailwind-design-system`, `frontend-design`.
 
-- [ ] 6.1 **Testes** em `apps/frontend/src/app/shared/components/crud/smart-filter-bar.component.spec.ts`:
+- [x] 6.1 **Testes** em `apps/frontend/src/app/shared/components/crud/smart-filter-bar.component.spec.ts`:
   - `should render quick filter inputs (text, select/boolean and master-detail) defined in SearchFilterConfigDto`
   - `should load dynamic options from optionsEndpoint for select quick filters`
   - `should handle master-detail cascade: selecting parent loads child options from childEndpoint with parentParamName and resets child value`
   - `should emit combined quick and advanced filters when clicking Buscar`
   - `should open Advanced Filters panel, allow adding/removing filter rows with field, allowed operators and value (including two inputs for between)`
   - `should clear all filters and emit empty array when clicking Limpar`
-- [ ] 6.2 Implementar `apps/frontend/src/app/shared/components/crud/smart-filter-bar.component.ts` conforme Seção 4.4 da especificação.
-- [ ] 6.3 **Checkpoint da Fase 6**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
+- [x] 6.2 Implementar `apps/frontend/src/app/shared/components/crud/smart-filter-bar.component.ts` conforme Seção 4.4 da especificação.
+- [x] 6.3 **Checkpoint da Fase 6**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
 
 ---
 
@@ -343,4 +343,5 @@
 - **Fase 3**: Implementados `@FormFieldMeta` e `DtoMetadataExplorer` com suporte a herança de DTOs (`BaseManagedUserDto` e `createUpdateDto`) e cruzamento com `@Masked`; enriquecidos DTOs e `CrudConfig` de Categorias, Perfis e Usuários; expostos endpoints `GET /:resource/meta`, `/meta/filters` e `/meta/form` no `createCrudController`. Testes unitários, de integração, lint, typecheck e build do backend 100% aprovados.
 - **Fase 4**: Implementados `LoadingService` (singleton com debounce de 150ms), `loadingInterceptor` (com suporte a `SKIP_GLOBAL_LOADING`) e `<ui-loading-overlay>`; encapsulado `ngx-sonner` no `ToastService` e `ToastComponent` mantendo compatibilidade com signal `toasts`; criado módulo encapsulado de dialogs (`UiDialogService` e `UiConfirmDialogComponent` sobre `@angular/cdk/dialog`); implementados `FormErrorHandlerService` e `errorInterceptor` para tratamento padronizado de erros em 3 níveis e leitura automática de erros no `<ui-input>`. Testes e typecheck do frontend 100% aprovados.
 - **Fase 5**: Implementados `GenericCrudService` (com serialização de paginação, multi-sort, filtros `campo__op=valor`, cache de `/meta`, `?version` em `remove` e `SKIP_GLOBAL_LOADING`), `CrudTableDataSource` (com clique simples e `Shift + Clique` para multi-sort), `UiPaginatorComponent` e `UiDataTableComponent` (linhas zebradas, prioridade de ordenação múltipla, formatação de `currency-cents`, máscara `99999`/`DADOS_SENSIVEIS`, badges e ações por linha). Testes e typecheck do frontend 100% aprovados.
+- **Fase 6**: Implementado `SmartFilterBarComponent` com suporte completo a filtros rápidos (texto, select estático/dinâmico via `optionsEndpoint`, booleano e select mestre-detalhe em cascata via `masterDetail`) e painel expansível de Filtros Avançados dinâmico (seleção de campo, operadores permitidos e inputs adaptativos incluindo intervalo `between`). Testes e typecheck do frontend 100% aprovados.
 
