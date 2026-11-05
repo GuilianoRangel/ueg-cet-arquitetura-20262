@@ -14,6 +14,7 @@ async function expectAsyncBusinessError(
   promise: Promise<unknown>,
   expectedCode: string,
   messageIncludes?: string,
+  expectedField?: string,
 ) {
   try {
     await promise;
@@ -26,6 +27,11 @@ async function expectAsyncBusinessError(
     expect(be.code).toBe(expectedCode);
     if (messageIncludes) {
       expect(be.message).toContain(messageIncludes);
+    }
+    if (expectedField) {
+      expect(be.details).toEqual([
+        expect.objectContaining({ field: expectedField }),
+      ]);
     }
   }
 }
@@ -126,6 +132,8 @@ describe('PerfisService', () => {
         defaultUser,
       ),
       'PERFIL_NOME_EXISTS',
+      undefined,
+      'nome',
     );
   });
 
@@ -163,6 +171,7 @@ describe('PerfisService', () => {
       ),
       'PERFIL_ROLE_INVALID',
       'role:inexistente1, role:inexistente2',
+      'roles',
     );
   });
 

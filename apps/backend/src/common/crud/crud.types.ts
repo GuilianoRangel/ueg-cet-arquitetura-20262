@@ -1,4 +1,19 @@
 import { EntityManager } from 'typeorm';
+import {
+  FilterControlType,
+  FilterFieldType,
+  FilterOperator,
+  FilterOptionItem,
+  MasterDetailFilterConfig,
+} from '@repo/utils';
+
+export type {
+  FilterControlType,
+  FilterFieldType,
+  FilterOperator,
+  FilterOptionItem,
+  MasterDetailFilterConfig,
+};
 
 export interface AuthenticatedUser {
   id: string;
@@ -41,20 +56,21 @@ export type CrudAfterFindHook<E> = (
   ctx: CrudContext<E, never>,
 ) => void | Promise<void>;
 
-export type FilterOperator =
-  | 'eq'
-  | 'ne'
-  | 'like'
-  | 'gt'
-  | 'gte'
-  | 'lt'
-  | 'lte'
-  | 'in'
-  | 'between';
-
 export interface FilterRule {
-  type: 'string' | 'number' | 'boolean' | 'date' | 'uuid';
+  type: FilterFieldType;
   operators: FilterOperator[];
+  label?: string;
+  quickFilter?: boolean;
+  controlType?: FilterControlType;
+  defaultOperator?: FilterOperator;
+  placeholder?: string;
+  options?: FilterOptionItem[];
+  optionsEndpoint?: string;
+  optionsValueKey?: string;
+  optionsLabelKey?: string;
+  masterDetail?: MasterDetailFilterConfig;
+  relationField?: string;
+  requiredRole?: string;
 }
 
 export type Type<T = unknown> = new (...args: unknown[]) => T;

@@ -17,6 +17,7 @@ import { ValidationException } from '../common/exceptions/validation.exception';
 async function expectAsyncBusinessError(
   promise: Promise<unknown>,
   expectedCode: string,
+  expectedField?: string,
 ) {
   try {
     await promise;
@@ -27,6 +28,11 @@ async function expectAsyncBusinessError(
     expect(err).toBeInstanceOf(BusinessException);
     const be = err as BusinessException;
     expect(be.code).toBe(expectedCode);
+    if (expectedField) {
+      expect(be.details).toEqual([
+        expect.objectContaining({ field: expectedField }),
+      ]);
+    }
   }
 }
 
@@ -174,6 +180,7 @@ describe('UsersService', () => {
         defaultActor,
       ),
       'USER_EMAIL_EXISTS',
+      'email',
     );
 
     // Soft-delete the first user
@@ -190,6 +197,7 @@ describe('UsersService', () => {
         defaultActor,
       ),
       'USER_EMAIL_EXISTS',
+      'email',
     );
   });
 
@@ -224,6 +232,7 @@ describe('UsersService', () => {
         defaultActor,
       ),
       'USER_PERFIL_INVALID',
+      'perfilIds',
     );
 
     // Inactive perfil
@@ -238,6 +247,7 @@ describe('UsersService', () => {
         defaultActor,
       ),
       'USER_PERFIL_INVALID',
+      'perfilIds',
     );
 
     // Soft-deleted perfil
@@ -252,6 +262,7 @@ describe('UsersService', () => {
         defaultActor,
       ),
       'USER_PERFIL_INVALID',
+      'perfilIds',
     );
   });
 

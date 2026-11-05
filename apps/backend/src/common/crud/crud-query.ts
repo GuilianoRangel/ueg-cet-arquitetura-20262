@@ -18,6 +18,7 @@ export interface ParsedFilter {
   field: string;
   operator: FilterOperator;
   value: unknown;
+  relationField?: string;
 }
 
 export interface ParsedQuery {
@@ -256,17 +257,17 @@ export function parseCrudQuery<
       );
     }
 
-    // Check masked
+    // Check masked or requiredRole
     const masked = maskedFields.find((m) => m.propertyKey === field);
-    if (masked) {
-      const requiredRole = masked.role || SENSITIVE_DATA_ROLE;
-      if (!roles.has(requiredRole)) {
-        throw new BusinessException(
-          `O campo "${field}" exige a role ${requiredRole}`,
-          'FORBIDDEN_SENSITIVE_FIELD',
-          HttpStatus.FORBIDDEN,
-        );
-      }
+    const requiredRole =
+      rule.requiredRole ||
+      (masked ? masked.role || SENSITIVE_DATA_ROLE : undefined);
+    if (requiredRole && !roles.has(requiredRole)) {
+      throw new BusinessException(
+        `O campo "${field}" exige a role ${requiredRole}`,
+        'FORBIDDEN_SENSITIVE_FIELD',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     if (!rule.operators.includes(operator)) {
@@ -282,6 +283,7 @@ export function parseCrudQuery<
       field,
       operator,
       value: coerced,
+      ...(rule.relationField ? { relationField: rule.relationField } : {}),
     });
   }
 
@@ -309,44 +311,62 @@ export function applyToQueryBuilder<E extends object>(
 
   parsed.filters.forEach((f, idx) => {
     const param = `p_${idx}`;
+    let targetColumn = `${alias}.${f.field}`;
+
+    if (f.relationField) {
+      const [relAlias] = f.relationField.split('.');
+      if (relAlias) {
+        const joinAttrs =
+          (
+            qb as unknown as {
+              expressionMap?: {
+                joinAttributes?: { alias?: { name?: string } }[];
+              };
+            }
+          ).expressionMap?.joinAttributes || [];
+        const alreadyJoined = joinAttrs.some((j) => j.alias?.name === relAlias);
+        if (!alreadyJoined && typeof qb.leftJoin === 'function') {
+          qb.leftJoin(`${alias}.${relAlias}`, relAlias);
+        }
+      }
+      targetColumn = f.relationField;
+    }
+
     switch (f.operator) {
       case 'eq':
-        qb.andWhere(`${alias}.${f.field} = :${param}`, { [param]: f.value });
+        qb.andWhere(`${targetColumn} = :${param}`, { [param]: f.value });
         break;
       case 'ne':
-        qb.andWhere(`${alias}.${f.field} != :${param}`, { [param]: f.value });
+        qb.andWhere(`${targetColumn} != :${param}`, { [param]: f.value });
         break;
       case 'like':
-        qb.andWhere(`LOWER(${alias}.${f.field}) LIKE LOWER(:${param})`, {
+        qb.andWhere(`LOWER(${targetColumn}) LIKE LOWER(:${param})`, {
           [param]: `%${String(f.value)}%`,
         });
         break;
       case 'gt':
-        qb.andWhere(`${alias}.${f.field} > :${param}`, { [param]: f.value });
+        qb.andWhere(`${targetColumn} > :${param}`, { [param]: f.value });
         break;
       case 'gte':
-        qb.andWhere(`${alias}.${f.field} >= :${param}`, { [param]: f.value });
+        qb.andWhere(`${targetColumn} >= :${param}`, { [param]: f.value });
         break;
       case 'lt':
-        qb.andWhere(`${alias}.${f.field} < :${param}`, { [param]: f.value });
+        qb.andWhere(`${targetColumn} < :${param}`, { [param]: f.value });
         break;
       case 'lte':
-        qb.andWhere(`${alias}.${f.field} <= :${param}`, { [param]: f.value });
+        qb.andWhere(`${targetColumn} <= :${param}`, { [param]: f.value });
         break;
       case 'in':
-        qb.andWhere(`${alias}.${f.field} IN (:...${param})`, {
+        qb.andWhere(`${targetColumn} IN (:...${param})`, {
           [param]: f.value,
         });
         break;
       case 'between': {
         const [minVal, maxVal] = f.value as [unknown, unknown];
-        qb.andWhere(
-          `${alias}.${f.field} BETWEEN :${param}_min AND :${param}_max`,
-          {
-            [`${param}_min`]: minVal,
-            [`${param}_max`]: maxVal,
-          },
-        );
+        qb.andWhere(`${targetColumn} BETWEEN :${param}_min AND :${param}_max`, {
+          [`${param}_min`]: minVal,
+          [`${param}_max`]: maxVal,
+        });
         break;
       }
     }

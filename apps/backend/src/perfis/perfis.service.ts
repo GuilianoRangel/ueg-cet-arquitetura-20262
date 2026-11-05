@@ -62,6 +62,7 @@ export class PerfisService extends CrudService<
         'Já existe um perfil com este nome',
         'PERFIL_NOME_EXISTS',
         HttpStatus.CONFLICT,
+        'nome',
       );
     }
   }
@@ -87,6 +88,7 @@ export class PerfisService extends CrudService<
         'Já existe um perfil com este nome',
         'PERFIL_NOME_EXISTS',
         HttpStatus.CONFLICT,
+        'nome',
       );
     }
   }
@@ -100,6 +102,7 @@ export class PerfisService extends CrudService<
         `Roles inválidas: ${invalid.join(', ')}`,
         'PERFIL_ROLE_INVALID',
         HttpStatus.BAD_REQUEST,
+        'roles',
       );
     }
   }

@@ -39,6 +39,7 @@ export class CategoriasService extends CrudService<
         'Já existe uma categoria com este nome',
         'CATEGORIA_NOME_EXISTS',
         HttpStatus.CONFLICT,
+        'nome',
       );
     }
   }
@@ -63,6 +64,7 @@ export class CategoriasService extends CrudService<
         'Já existe uma categoria com este nome',
         'CATEGORIA_NOME_EXISTS',
         HttpStatus.CONFLICT,
+        'nome',
       );
     }
   }

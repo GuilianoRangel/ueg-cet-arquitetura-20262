@@ -239,4 +239,60 @@ describe('AllExceptionsFilter', () => {
     const responsePayload = calls[0][0] as { details?: unknown };
     expect(responsePayload.details).toBeUndefined();
   });
+
+  it('should include details[{ field, message }] when BusinessException is thrown with a field string', () => {
+    const exception = new BusinessException(
+      'Já existe um usuário com este e-mail',
+      'USER_EMAIL_EXISTS',
+      HttpStatus.CONFLICT,
+      'email',
+    );
+    filter.catch(exception, mockHost);
+
+    expect(mockStatus).toHaveBeenCalledWith(409);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 409,
+        error: 'USER_EMAIL_EXISTS',
+        message: 'Já existe um usuário com este e-mail',
+        details: [
+          { field: 'email', message: 'Já existe um usuário com este e-mail' },
+        ],
+      }),
+    );
+  });
+
+  it('should include details array when BusinessException is thrown with ApiErrorDetail[]', () => {
+    const customDetails = [{ field: 'roles', message: 'Roles inválidas: x:y' }];
+    const exception = new BusinessException(
+      'Roles inválidas: x:y',
+      'PERFIL_ROLE_INVALID',
+      HttpStatus.BAD_REQUEST,
+      customDetails,
+    );
+    filter.catch(exception, mockHost);
+
+    expect(mockStatus).toHaveBeenCalledWith(400);
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 400,
+        error: 'PERFIL_ROLE_INVALID',
+        message: 'Roles inválidas: x:y',
+        details: customDetails,
+      }),
+    );
+  });
+
+  it('should omit details when BusinessException is thrown without fieldOrDetails', () => {
+    const exception = new BusinessException(
+      'Não é possível remover o último admin',
+      'USER_LAST_ADMIN',
+      HttpStatus.CONFLICT,
+    );
+    filter.catch(exception, mockHost);
+
+    const calls = mockJson.mock.calls as unknown[][];
+    const responsePayload = calls[0][0] as { details?: unknown };
+    expect(responsePayload.details).toBeUndefined();
+  });
 });

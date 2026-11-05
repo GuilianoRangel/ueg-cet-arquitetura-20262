@@ -16,6 +16,7 @@ import { ValidationException } from '../common/exceptions/validation.exception';
 async function expectAsyncBusinessError(
   promise: Promise<unknown>,
   expectedCode: string,
+  expectedField?: string,
 ) {
   try {
     await promise;
@@ -26,6 +27,11 @@ async function expectAsyncBusinessError(
     expect(err).toBeInstanceOf(BusinessException);
     const be = err as BusinessException;
     expect(be.code).toBe(expectedCode);
+    if (expectedField) {
+      expect(be.details).toEqual([
+        expect.objectContaining({ field: expectedField }),
+      ]);
+    }
   }
 }
 
@@ -105,6 +111,7 @@ describe('CategoriasService', () => {
         defaultUser,
       ),
       'CATEGORIA_NOME_EXISTS',
+      'nome',
     );
   });
 
@@ -145,6 +152,7 @@ describe('CategoriasService', () => {
         defaultUser,
       ),
       'CATEGORIA_NOME_EXISTS',
+      'nome',
     );
   });
 

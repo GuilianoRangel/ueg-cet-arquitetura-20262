@@ -81,6 +81,7 @@ export class UsersService extends CrudService<
         'Já existe um usuário com este e-mail',
         'USER_EMAIL_EXISTS',
         HttpStatus.CONFLICT,
+        'email',
       );
     }
   }
@@ -104,6 +105,7 @@ export class UsersService extends CrudService<
         'Já existe um usuário com este e-mail',
         'USER_EMAIL_EXISTS',
         HttpStatus.CONFLICT,
+        'email',
       );
     }
   }
@@ -121,6 +123,7 @@ export class UsersService extends CrudService<
         'Um ou mais perfis informados são inválidos ou inativos',
         'USER_PERFIL_INVALID',
         HttpStatus.BAD_REQUEST,
+        'perfilIds',
       );
     }
     for (const p of perfis) {
@@ -129,6 +132,7 @@ export class UsersService extends CrudService<
           'Um ou mais perfis informados são inválidos ou inativos',
           'USER_PERFIL_INVALID',
           HttpStatus.BAD_REQUEST,
+          'perfilIds',
         );
       }
     }

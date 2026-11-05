@@ -77,21 +77,21 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seções 3.1 e 3.2), `apps/backend/src/common/exceptions/business.exception.ts`, `apps/backend/src/common/filters/all-exceptions.filter.ts`, `apps/backend/src/common/crud/crud.types.ts`, `apps/backend/src/common/crud/crud-query.ts`.
 > - Skills ativas: `execute-plan`, `generic-crud-usecase`, `nestjs-best-practices`, `nestjs-testing-expert`.
 
-- [ ] 2.1 **Testes** em `apps/backend/src/common/filters/all-exceptions.filter.spec.ts`:
+- [x] 2.1 **Testes** em `apps/backend/src/common/filters/all-exceptions.filter.spec.ts`:
   - `should include details[{ field, message }] when BusinessException is thrown with a field string`
   - `should include details array when BusinessException is thrown with ApiErrorDetail[]`
   - `should omit details when BusinessException is thrown without fieldOrDetails`
-- [ ] 2.2 Evoluir `apps/backend/src/common/exceptions/business.exception.ts`:
+- [x] 2.2 Evoluir `apps/backend/src/common/exceptions/business.exception.ts`:
   - Adicionar 4º parâmetro opcional no construtor: `fieldOrDetails?: string | ApiErrorDetail[]`.
   - Se `typeof fieldOrDetails === 'string'`, armazenar `readonly details: ApiErrorDetail[] = [{ field: fieldOrDetails, message }]`.
   - Se `Array.isArray(fieldOrDetails)`, armazenar `readonly details: ApiErrorDetail[] = fieldOrDetails`.
   - Atualizar `AllExceptionsFilter` (`apps/backend/src/common/filters/all-exceptions.filter.ts`) para extrair `exception.details` de `BusinessException` quando presente.
-- [ ] 2.3 Atualizar os validadores de negócio nos 3 serviços existentes para informar o nome do campo correspondente:
+- [x] 2.3 Atualizar os validadores de negócio nos 3 serviços existentes para informar o nome do campo correspondente:
   - `apps/backend/src/categorias/categorias.service.ts`: passar `'nome'` em `CATEGORIA_NOME_EXISTS` (create e update).
   - `apps/backend/src/perfis/perfis.service.ts`: passar `'nome'` em `PERFIL_NOME_EXISTS` (create e update) e `'roles'` em `PERFIL_ROLE_INVALID`.
   - `apps/backend/src/users/users.service.ts`: passar `'email'` em `USER_EMAIL_EXISTS` (create e update) e `'perfilIds'` em `USER_PERFIL_INVALID`.
   - Atualizar/adicionar asserções nos arquivos `categorias.service.spec.ts`, `perfis.service.spec.ts` e `users.service.spec.ts` verificando que `err.details` contém o `field` esperado.
-- [ ] 2.4 Evoluir `FilterRule` em `apps/backend/src/common/crud/crud.types.ts`:
+- [x] 2.4 Evoluir `FilterRule` em `apps/backend/src/common/crud/crud.types.ts`:
   - Reutilizar `FilterOperator`, `FilterControlType`, `FilterOptionItem`, `MasterDetailFilterConfig` de `@repo/utils`.
   - Adicionar em `FilterRule` as propriedades opcionais de metadados de busca:
     - `label?: string`
@@ -106,21 +106,21 @@
     - `masterDetail?: MasterDetailFilterConfig`
     - `relationField?: string` (ex: `'perfis.id'`)
     - `requiredRole?: string`
-- [ ] 2.5 **Testes** em `apps/backend/src/common/crud/crud-query.spec.ts`:
+- [x] 2.5 **Testes** em `apps/backend/src/common/crud/crud-query.spec.ts`:
   - `should parse and apply filter on a relationField (e.g. perfilId mapped to perfis.id with eq and in operators)`
-- [ ] 2.6 Atualizar `apps/backend/src/common/crud/crud-query.ts`:
+- [x] 2.6 Atualizar `apps/backend/src/common/crud/crud-query.ts`:
   - Incluir `relationField?: string` em `ParsedFilter`.
   - Em `parseCrudQuery`, repassar `relationField: rule.relationField` e verificar `rule.requiredRole` (além de `maskedFields`) contra `roles`.
   - Em `applyToQueryBuilder`, quando `f.relationField` estiver definido (no formato `'relacao.coluna'`, ex: `'perfis.id'`), garantir que o join `${alias}.${relacao}` exista no `QueryBuilder` (ou usar o alias já existente criado por `config.relations`) e aplicar a cláusula `WHERE` sobre `${relacao}.${coluna}` com `eq` ou `in`.
-- [ ] 2.7 **Testes** em `apps/backend/src/common/crud/metadata/smart-filter-metadata.service.spec.ts`:
+- [x] 2.7 **Testes** em `apps/backend/src/common/crud/metadata/smart-filter-metadata.service.spec.ts`:
   - `should build SearchFilterConfigDto from CrudConfig filters with default labels and controlTypes`
   - `should omit fields protected by @Masked or requiredRole when user does not have the required role`
   - `should include fields protected by @Masked when user has DADOS_SENSIVEIS`
   - `should preserve quickFilter, options, optionsEndpoint and masterDetail configurations`
-- [ ] 2.8 Criar `apps/backend/src/common/crud/metadata/smart-filter-metadata.service.ts`:
+- [x] 2.8 Criar `apps/backend/src/common/crud/metadata/smart-filter-metadata.service.ts`:
   - Exportar a interface `ISmartFilterConfigProvider { getSearchFilterConfig(userRoles: ReadonlySet<string>): SearchFilterConfigDto }` para que qualquer caso de uso do sistema possa fornecer metadados ao `SmartFilterBar`.
   - Implementar a função/serviço `buildSearchFilterConfig(config: CrudConfig<E, C, U>, userRoles: ReadonlySet<string>, maskedFields: MaskedFieldMetadata[]): SearchFilterConfigDto`.
-- [ ] 2.9 **Checkpoint da Fase 2**: Executar `pnpm --filter backend test && pnpm --filter backend typecheck && pnpm --filter backend lint` e garantir 100% de aprovação.
+- [x] 2.9 **Checkpoint da Fase 2**: Executar `pnpm --filter backend test && pnpm --filter backend typecheck && pnpm --filter backend lint` e garantir 100% de aprovação.
 
 ---
 
@@ -339,4 +339,5 @@
 ## Observações (Preencher ao final de cada Fase)
 - **Fase 0**: Estado inicial do monorepo validado (testes e typecheck 100% verdes). Instalados `@angular/cdk@^21.2.0` e `ngx-sonner` no workspace `frontend` e importado `@angular/cdk/overlay-prebuilt.css` em `apps/frontend/src/styles.css`. Build e testes do frontend validados com sucesso.
 - **Fase 1**: Criados e exportados os contratos compartilhados de metadados de busca (`SmartFilterBar`) e formulários dinâmicos (`CrudFormSchemaDto`, `CrudResourceMetaDto`) em `@repo/utils`, além de `FILTER_OPERATORS` e `FilterOperator`. Testes unitários e build de `@repo/utils` 100% aprovados.
+- **Fase 2**: Evoluído `BusinessException` e `AllExceptionsFilter` para suportar `details` por campo; atualizados os validadores de `CategoriasService`, `PerfisService` e `UsersService`; adicionado suporte a `relationField` e `requiredRole` em `FilterRule` e `crud-query.ts`; criado `SmartFilterMetadataService` e `ISmartFilterConfigProvider`. Testes, typecheck e lint do backend 100% aprovados.
 

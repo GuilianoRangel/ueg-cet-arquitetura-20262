@@ -47,6 +47,11 @@ describe('crud-query', () => {
       ativo: { type: 'boolean', operators: ['eq'] },
       createdAt: { type: 'date', operators: ['gte', 'lte', 'between'] },
       userId: { type: 'uuid', operators: ['eq', 'in'] },
+      perfilId: {
+        type: 'uuid',
+        operators: ['eq', 'in'],
+        relationField: 'perfis.id',
+      },
     },
   };
 
@@ -417,6 +422,81 @@ describe('crud-query', () => {
     });
     expect(andWhereMock).toHaveBeenCalledWith('cat.valor > :p_1', {
       p_1: 100,
+    });
+  });
+
+  it('should parse and apply filter on a relationField (e.g. perfilId mapped to perfis.id with eq and in operators)', () => {
+    const validUuid1 = '123e4567-e89b-12d3-a456-426614174000';
+    const validUuid2 = '223e4567-e89b-12d3-a456-426614174000';
+
+    const parsedEq = parseCrudQuery(
+      { perfilId: validUuid1 },
+      dummyConfig,
+      new Set(),
+      maskedFields,
+    );
+    expect(parsedEq.filters).toEqual([
+      {
+        field: 'perfilId',
+        operator: 'eq',
+        value: validUuid1,
+        relationField: 'perfis.id',
+      },
+    ]);
+
+    const skipMock = jest.fn().mockReturnThis();
+    const takeMock = jest.fn().mockReturnThis();
+    const addOrderByMock = jest.fn().mockReturnThis();
+    const andWhereMock = jest.fn().mockReturnThis();
+    const leftJoinMock = jest.fn().mockReturnThis();
+
+    const mockQb = {
+      skip: skipMock,
+      take: takeMock,
+      addOrderBy: addOrderByMock,
+      andWhere: andWhereMock,
+      leftJoin: leftJoinMock,
+      expressionMap: { joinAttributes: [] },
+    } as unknown as SelectQueryBuilder<DummyEntity>;
+
+    applyToQueryBuilder(mockQb, parsedEq, 'entity');
+    expect(leftJoinMock).toHaveBeenCalledWith('entity.perfis', 'perfis');
+    expect(andWhereMock).toHaveBeenCalledWith('perfis.id = :p_0', {
+      p_0: validUuid1,
+    });
+
+    const parsedIn = parseCrudQuery(
+      { perfilId__in: `${validUuid1},${validUuid2}` },
+      dummyConfig,
+      new Set(),
+      maskedFields,
+    );
+    expect(parsedIn.filters).toEqual([
+      {
+        field: 'perfilId',
+        operator: 'in',
+        value: [validUuid1, validUuid2],
+        relationField: 'perfis.id',
+      },
+    ]);
+
+    const andWhereMock2 = jest.fn().mockReturnThis();
+    const leftJoinMock2 = jest.fn().mockReturnThis();
+    const mockQbWithExistingJoin = {
+      skip: skipMock,
+      take: takeMock,
+      addOrderBy: addOrderByMock,
+      andWhere: andWhereMock2,
+      leftJoin: leftJoinMock2,
+      expressionMap: {
+        joinAttributes: [{ alias: { name: 'perfis' } }],
+      },
+    } as unknown as SelectQueryBuilder<DummyEntity>;
+
+    applyToQueryBuilder(mockQbWithExistingJoin, parsedIn, 'entity');
+    expect(leftJoinMock2).not.toHaveBeenCalled();
+    expect(andWhereMock2).toHaveBeenCalledWith('perfis.id IN (:...p_0)', {
+      p_0: [validUuid1, validUuid2],
     });
   });
 });

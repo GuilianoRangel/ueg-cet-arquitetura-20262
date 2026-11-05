@@ -42,6 +42,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       } else {
         message = exception.message;
       }
+      details = exception.details;
     } else if (exception instanceof ValidationException) {
       statusCode = exception.getStatus();
       errorCode = 'VALIDATION_ERROR';
