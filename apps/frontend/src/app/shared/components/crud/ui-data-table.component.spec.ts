@@ -212,3 +212,4 @@ describe('UiDataTableComponent', () => {
     expect(row2DeleteBtn?.disabled).toBe(false);
   });
 });
+

@@ -191,3 +191,4 @@ export class UiDataTableComponent<
       : action.label;
   }
 }
+

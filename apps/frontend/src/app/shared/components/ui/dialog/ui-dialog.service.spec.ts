@@ -113,3 +113,4 @@ describe('UiDialogService', () => {
     expect(cancelledResult).toBe(false);
   });
 });
+

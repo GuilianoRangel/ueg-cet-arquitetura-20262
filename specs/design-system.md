@@ -69,6 +69,33 @@ Indicadores rápidos de status (ex: ativo/inativo).
 <ui-badge variant="success">Ativo</ui-badge>
 ```
 
+### 2.5 Dialogs e Modais (`UiDialogService` e `UiConfirmDialogComponent`)
+Encapsula o `@angular/cdk/dialog` em `apps/frontend/src/app/shared/components/ui/dialog/` sem acoplar as páginas diretamente ao CDK:
+- `uiDialogService.open(Component, { data, width })`: Abre modais com focus-trap, fechamento por `ESC`/backdrop e classes semânticas do Design System.
+- `uiDialogService.confirm({ title, message, confirmText, cancelText, variant })`: Abre o modal padronizado de confirmação retornando `Observable<boolean>`.
+
+### 2.6 Toasts (`ToastService` e `<ui-toast>`)
+Encapsula a biblioteca `ngx-sonner` em `apps/frontend/src/app/shared/components/ui/toast.service.ts` e `toast.component.ts`, expondo os métodos `success()`, `error()`, `info()` e `warning()` além do signal reativo `toasts`.
+
+### 2.7 Loading Global (`LoadingService` e `<ui-loading-overlay>`)
+Gerencia automaticamente o estado de carregamento das requisições HTTP via `loadingInterceptor` com debounce de `150ms` para evitar flicker em chamadas rápidas. Casos de uso específicos podem desabilitar o loading global passando `{ skipGlobalLoading: true }` ou `withSkipGlobalLoading()` no `HttpContext`.
+
+## 📋 3. Componentes Compostos de CRUD (`apps/frontend/src/app/shared/components/crud/`)
+
+1. **`UiDataTableComponent` (`<ui-data-table>`) e `CrudTableDataSource<E>`**:
+   - Tabela padronizada com linhas zebradas (`odd:bg-background even:bg-muted/30`), ordenação simples (clique no cabeçalho) e ordenação por múltiplas colunas (`Shift + Clique` com indicador numérico de prioridade `1`, `2`, ...).
+   - Renderização automática de células por tipo: `text`, `boolean` (badge), `currency-cents` (formatação em BRL `R$` e proteção automática de valores mascarados `99999` / role `DADOS_SENSIVEIS`), `date`, `datetime` e `badges`.
+   - Coluna de operações à direita respeitando permissões (`authService.hasRole`), `visible(row)` e `disabled(row)`.
+2. **`UiPaginatorComponent` (`<ui-paginator>`)**:
+   - Paginador conectado ao `CrudTableDataSource` com seletor de itens por página (`10`, `25`, `50`, `100`), faixa de registros exibidos e botões de navegação (`«`, `‹`, páginas, `›`, `»`).
+3. **`SmartFilterBarComponent` (`<app-smart-filter-bar>`)**:
+   - Barra de filtros inteligente orientada pelos metadados do backend (`GET /:resource/meta`), com filtros rápidos (`text`, `select`, `boolean` e `master-detail` em cascata) e painel expansível de **Filtros Avançados** com operadores dinâmicos (`eq`, `ne`, `like`, `gt`, `gte`, `lt`, `lte`, `between`, `in`).
+4. **`GenericCrudFormComponent` (`<app-generic-crud-form>`) e `GenericCrudFormModalComponent`**:
+   - Constrói formulários reativos e validações dinamicamente a partir dos schemas `createForm` e `updateForm` extraídos dos DTOs do backend (`DtoMetadataExplorer` + `@FormFieldMeta`).
+   - Integra o tratamento de erros em 3 níveis (`FormErrorHandlerService` + `errorInterceptor`): erros de campo (Nível 1) abaixo do respectivo controle, erros de negócio gerais (Nível 2) em Banner de alerta no topo do formulário, e erros inesperados 500/rede (Nível 3) via Toast amigável.
+5. **`GenericCrudPageComponent` (`<app-generic-crud-page>`)**:
+   - Orquestra cabeçalho, botão de criação, `SmartFilterBar`, `UiDataTable`, `UiPaginator`, modais de criação/edição e confirmação de exclusão com código mínimo por página.
+
 ## 🏗 3. App Shell e Estrutura de Layout
 
 Toda a área restrita da aplicação utiliza a arquitetura de **Shell** (`apps/frontend/src/app/shared/components/layout/shell.component.ts`), composta por:

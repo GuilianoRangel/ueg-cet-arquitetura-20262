@@ -488,3 +488,4 @@ export class SmartFilterBarComponent {
     this.filterChange.emit([]);
   }
 }
+

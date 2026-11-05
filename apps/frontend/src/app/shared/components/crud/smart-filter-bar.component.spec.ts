@@ -320,3 +320,4 @@ describe('SmartFilterBarComponent', () => {
     expect(nomeInput.value).toBe('');
   });
 });
+

@@ -99,3 +99,4 @@ describe('PerfisPageComponent', () => {
     expect(component.pageConfig.canDeleteRow?.(customPerfil)).toBe(true);
   });
 });
+

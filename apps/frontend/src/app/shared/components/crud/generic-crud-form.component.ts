@@ -396,3 +396,4 @@ export class GenericCrudFormComponent {
     this.formCancel.emit();
   }
 }
+

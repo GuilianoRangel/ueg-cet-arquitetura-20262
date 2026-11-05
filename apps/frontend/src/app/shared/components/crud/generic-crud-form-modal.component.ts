@@ -54,3 +54,4 @@ export class GenericCrudFormModalComponent {
     this.dialogRef.close(undefined);
   }
 }
+

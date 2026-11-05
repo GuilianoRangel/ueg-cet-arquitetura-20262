@@ -78,3 +78,4 @@ describe('CategoriasPageComponent', () => {
     expect(valorCol?.maskedSentinel).toBe(99999);
   });
 });
+

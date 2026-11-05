@@ -93,3 +93,4 @@ describe('errorInterceptor', () => {
     expect(toastServiceMock.error).not.toHaveBeenCalled();
   });
 });
+

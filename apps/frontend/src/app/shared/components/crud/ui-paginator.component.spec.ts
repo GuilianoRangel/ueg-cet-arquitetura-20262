@@ -88,3 +88,4 @@ describe('UiPaginatorComponent', () => {
     expect(limitChangeSpy).toHaveBeenCalledWith(25);
   });
 });
+

@@ -11,3 +11,4 @@ import { LoadingService } from '../../../core/loading/loading.service';
 export class UiLoadingOverlayComponent {
   protected readonly loadingService = inject(LoadingService);
 }
+

@@ -26,3 +26,4 @@ export class UiConfirmDialogComponent {
     this.dialogRef.close(false);
   }
 }
+

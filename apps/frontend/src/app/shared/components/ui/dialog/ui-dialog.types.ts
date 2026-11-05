@@ -23,3 +23,4 @@ export interface UiDialogRef<TResult = unknown> {
   readonly closed: Observable<TResult | undefined>;
   close(result?: TResult): void;
 }
+

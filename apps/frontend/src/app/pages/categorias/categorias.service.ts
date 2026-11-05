@@ -19,3 +19,4 @@ export class CategoriasService extends GenericCrudService<CategoriaDto> {
     super('categorias');
   }
 }
+

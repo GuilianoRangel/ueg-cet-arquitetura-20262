@@ -310,3 +310,4 @@ describe('GenericCrudPageComponent', () => {
     expect(crudServiceMock.findAll).toHaveBeenCalledTimes(1);
   });
 });
+

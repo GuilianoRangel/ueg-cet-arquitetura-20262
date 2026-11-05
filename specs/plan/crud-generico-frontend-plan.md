@@ -324,15 +324,15 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seção 7), `specs/design-system.md`, `specs/arquitetura.md`.
 > - Skills ativas: `execute-plan`, `clean-code`.
 
-- [ ] 9.1 Atualizar `specs/design-system.md` e `specs/arquitetura.md` documentando os novos componentes padronizados (`UiDataTable`, `UiPaginator`, `SmartFilterBar`, `GenericCrudForm`, `GenericCrudPage`, `UiDialogService`, `LoadingService` + `UiLoadingOverlay` e `ToastService` com `ngx-sonner`).
-- [ ] 9.2 Verificar ausência total do tipo `any` nos arquivos criados/modificados:
+- [x] 9.1 Atualizar `specs/design-system.md` e `specs/arquitetura.md` documentando os novos componentes padronizados (`UiDataTable`, `UiPaginator`, `SmartFilterBar`, `GenericCrudForm`, `GenericCrudPage`, `UiDialogService`, `LoadingService` + `UiLoadingOverlay` e `ToastService` com `ngx-sonner`).
+- [x] 9.2 Verificar ausência total do tipo `any` nos arquivos criados/modificados:
   - `grep -rn ": any\|as any\|<any>" apps packages --include="*.ts" --exclude-dir=node_modules --exclude-dir=dist`
-- [ ] 9.3 Executar validação completa na raiz do monorepo:
+- [x] 9.3 Executar validação completa na raiz do monorepo:
   - `pnpm test`
   - `pnpm typecheck`
   - `pnpm lint`
   - `pnpm build`
-- [ ] 9.4 Marcar todos os itens concluídos neste plano e atualizar a seção **"Observações"** abaixo.
+- [x] 9.4 Marcar todos os itens concluídos neste plano e atualizar a seção **"Observações"** abaixo.
 
 ---
 
@@ -346,4 +346,5 @@
 - **Fase 6**: Implementado `SmartFilterBarComponent` com suporte completo a filtros rápidos (texto, select estático/dinâmico via `optionsEndpoint`, booleano e select mestre-detalhe em cascata via `masterDetail`) e painel expansível de Filtros Avançados dinâmico (seleção de campo, operadores permitidos e inputs adaptativos incluindo intervalo `between`). Testes e typecheck do frontend 100% aprovados.
 - **Fase 7**: Implementados `GenericCrudFormComponent`, `GenericCrudFormModalComponent` e `GenericCrudPageComponent` com geração reativa de formulários a partir de `CrudFormSchemaDto`, conversão monetária em centavos, mapeamento de relações (`entityRelationProperty`), exibição de erros Nível 1 (campo) e Nível 2 (banner de negócio), e orquestração completa de listagem, criação, edição e exclusão com confirmação. Testes e typecheck do frontend 100% aprovados.
 - **Fase 8**: Implementados `CategoriasService` + `CategoriasPageComponent` (`/categorias`), `PerfisService` + `PerfisPageComponent` (`/perfis`, com bloqueio de edição/exclusão para perfis de sistema) e `UsersService` + `UsersListComponent` (`/admin` e `/users`, com ações extras `Aprovar` e `Redefinir Senha`), além da atualização de rotas (`app.routes.ts`) e links de menu na Sidebar (`app.html`). Testes, typecheck e build do frontend 100% aprovados.
+- **Fase 9**: Atualizados `specs/design-system.md` e `specs/arquitetura.md`; validada ausência total do tipo `any` em todo o monorepo (`apps` e `packages`); executada validação completa na raiz (`pnpm test`, `pnpm typecheck`, `pnpm lint` e `pnpm build`) com 100% de aprovação.
 

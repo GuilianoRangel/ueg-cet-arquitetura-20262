@@ -76,7 +76,7 @@ export class ForgotPasswordComponent {
       const { email } = this.forgotForm.value;
       
       this.authService.forgotPassword(email as string).subscribe({
-        next: (res: any) => {
+        next: (res) => {
           this.successMsg.set(res.message);
           this.isLoading.set(false);
         },

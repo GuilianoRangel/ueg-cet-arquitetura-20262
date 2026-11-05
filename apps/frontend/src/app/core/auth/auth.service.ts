@@ -99,12 +99,12 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/register`, userData);
   }
 
-  forgotPassword(email: string): Observable<unknown> {
-    return this.http.post(`${this.apiUrl}/forgot-password`, { email });
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/forgot-password`, { email });
   }
 
-  resetPassword(data: unknown): Observable<unknown> {
-    return this.http.post(`${this.apiUrl}/reset-password`, data);
+  resetPassword(data: unknown): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, data);
   }
 
   logout(): void {

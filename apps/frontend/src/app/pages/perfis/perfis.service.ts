@@ -20,3 +20,4 @@ export class PerfisService extends GenericCrudService<PerfilDto> {
     super('perfis');
   }
 }
+

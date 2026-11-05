@@ -168,13 +168,14 @@ A arquitetura do backend disponibiliza um framework de CRUD genérico reutilizá
 6. **Controle de Concorrência SQLite**: Inclusão de Mutex (`async-mutex`) e `TransactionRunner` para serializar operações de escrita e evitar bloqueios (`SQLITE_BUSY`).
 7. **Documentação Automática OpenAPI (Swagger)**: Todos os endpoints (autenticação, catálogo de permissões e CRUD genérico) são documentados automaticamente via `@nestjs/swagger` com tags, schemas de DTOs, parâmetros de busca/paginação, códigos de retorno HTTP e suporte a Bearer JWT, acessível na rota `/api/docs`.
 
-### Como criar um novo CRUD em 5 passos:
-Para criar um CRUD completo (exemplo de `Categoria`):
-1. **Entidade**: Crie `Categoria` estendendo `BaseEntity` com decorators do TypeORM e `@Sensitive()` nos campos restritos.
-2. **DTOs**: Crie `CreateCategoriaDto` e `UpdateCategoriaDto` com validações de `class-validator`.
-3. **Migration**: Crie a migration da tabela com os índices adequados.
-4. **Service e Validador**: Crie `CategoriasService extends CrudService<Categoria>` definindo a `CrudConfig`. Caso haja regras de validação de negócio (como nome único ou integridade relacional), implemente um `CrudValidator<Categoria>`.
-5. **Controller e Módulo**: Crie `CategoriasController extends createCrudController(...)` e registre a entidade, o service e o controller no `CategoriasModule`. As roles (`categorias:read`, `categorias:create`, etc.) serão registradas e validadas automaticamente!
+### Como criar um novo CRUD (Backend + Frontend):
+Para criar um CRUD completo de ponta a ponta (exemplo de `Categoria`):
+1. **Entidade (Backend)**: Crie `Categoria` estendendo `BaseEntity` com decorators do TypeORM e `@Masked()` nos campos restritos.
+2. **DTOs e Metadados (Backend)**: Crie `CreateCategoriaDto` e `UpdateCategoriaDto` (via `createUpdateDto`) com validações de `class-validator` e `@FormFieldMeta(...)` para enriquecer rótulos, tipos de input e endpoints de opções.
+3. **Migration (Backend)**: Crie a migration da tabela com os índices adequados.
+4. **Service, Config e Validador (Backend)**: Crie `CategoriasService extends CrudService<Categoria>` definindo `CrudConfig` (incluindo `relationField` ou `requiredRole` em `filterRules` quando aplicável). Para regras de negócio atreladas a um campo específico, lance `new BusinessException(mensagem, codigo, status, 'nomeDoCampo')`.
+5. **Controller e Módulo (Backend)**: Crie `CategoriasController extends createCrudController(...)`, que expõe automaticamente as operações REST e os endpoints de metadados (`GET /:resource/meta`, `/meta/filters` e `/meta/form`).
+6. **Service e Página CRUD (Frontend)**: Crie um service estendendo `GenericCrudService<E>` e um componente de página configurando `<app-generic-crud-page [config]="pageConfig">`, que renderiza automaticamente o `SmartFilterBarComponent`, `UiDataTableComponent` (com linhas zebradas e multi-sort), `UiPaginatorComponent` e os modais dinâmicos de criação/edição (`GenericCrudFormComponent`) com tratamento padronizado de erros em 3 níveis (`FormErrorHandlerService` + `errorInterceptor`) e controle global de loading (`LoadingService` + `UiLoadingOverlayComponent`).
 
 ---
 

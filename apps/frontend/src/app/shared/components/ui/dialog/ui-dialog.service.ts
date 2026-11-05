@@ -63,3 +63,4 @@ export class UiDialogService {
     return ref.closed.pipe(map((confirmed) => confirmed === true));
   }
 }
+
