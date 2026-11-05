@@ -1,0 +1,95 @@
+<div
+  class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-card border-t border-border text-sm text-muted-foreground"
+>
+  <div class="flex items-center gap-4">
+    <span data-testid="paginator-range-text" class="text-xs sm:text-sm">
+      Exibindo <strong class="text-foreground">{{ startItem() }}</strong> a
+      <strong class="text-foreground">{{ endItem() }}</strong> de
+      <strong class="text-foreground">{{ effectiveTotal() }}</strong> registros
+    </span>
+
+    <div class="flex items-center gap-2">
+      <label for="paginator-limit" class="text-xs whitespace-nowrap"
+        >Itens por página:</label
+      >
+      <select
+        id="paginator-limit"
+        data-testid="paginator-limit-select"
+        [value]="effectiveLimit()"
+        (change)="onLimitSelect($event)"
+        class="h-8 rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        @for (size of effectivePageSizeOptions(); track size) {
+          <option [value]="size" [selected]="size === effectiveLimit()">
+            {{ size }}
+          </option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-1">
+    <button
+      type="button"
+      ui-button
+      variant="outline"
+      size="sm"
+      data-testid="paginator-first"
+      [disabled]="effectivePage() <= 1"
+      (click)="goToPage(1)"
+      aria-label="Primeira página"
+    >
+      «
+    </button>
+    <button
+      type="button"
+      ui-button
+      variant="outline"
+      size="sm"
+      data-testid="paginator-prev"
+      [disabled]="effectivePage() <= 1"
+      (click)="goToPage(effectivePage() - 1)"
+      aria-label="Página anterior"
+    >
+      ‹
+    </button>
+
+    @for (pageNum of visiblePages(); track pageNum) {
+      <button
+        type="button"
+        ui-button
+        [variant]="pageNum === effectivePage() ? 'default' : 'outline'"
+        size="sm"
+        [attr.data-testid]="'paginator-page-' + pageNum"
+        (click)="goToPage(pageNum)"
+      >
+        {{ pageNum }}
+      </button>
+    }
+
+    <button
+      type="button"
+      ui-button
+      variant="outline"
+      size="sm"
+      data-testid="paginator-next"
+      [disabled]="effectivePage() >= totalPages()"
+      (click)="goToPage(effectivePage() + 1)"
+      aria-label="Próxima página"
+    >
+      ›
+    </button>
+    <button
+      type="button"
+      ui-button
+      variant="outline"
+      size="sm"
+      data-testid="paginator-last"
+      [disabled]="effectivePage() >= totalPages()"
+      (click)="goToPage(totalPages())"
+      aria-label="Última página"
+    >
+      »
+    </button>
+  </div>
+</div>

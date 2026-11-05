@@ -215,30 +215,30 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seções 4.1, 4.2 e 4.3), `specs/design-system.md`.
 > - Skills ativas: `execute-plan`, `angular-dev`, `angular-testing`, `tailwind-design-system`, `frontend-design`.
 
-- [ ] 5.1 **Testes** em `apps/frontend/src/app/core/crud/generic-crud.service.spec.ts`:
+- [x] 5.1 **Testes** em `apps/frontend/src/app/core/crud/generic-crud.service.spec.ts`:
   - `should serialize page, limit, multi-column sorts (field1:ASC,field2:DESC) and filters (field__op=value) in findAll`
   - `should serialize between and in filter arrays as comma-separated values`
   - `should call GET /:resource/meta and cache result`
   - `should pass version query param on remove(id, version)`
   - `should pass SKIP_GLOBAL_LOADING context when skipGlobalLoading option is true`
-- [ ] 5.2 Implementar `apps/frontend/src/app/core/crud/generic-crud.service.ts` conforme Seção 4.1 da especificação.
-- [ ] 5.3 **Testes** em `apps/frontend/src/app/shared/components/crud/crud-table-data-source.spec.ts`:
+- [x] 5.2 Implementar `apps/frontend/src/app/core/crud/generic-crud.service.ts` conforme Seção 4.1 da especificação.
+- [x] 5.3 **Testes** em `apps/frontend/src/app/shared/components/crud/crud-table-data-source.spec.ts`:
   - `single click toggleSort should cycle ASC -> DESC -> none and replace previous sort`
   - `shift+click toggleSort (multiSort=true) should append second column to sorts array and cycle its state independently`
   - `setPage, setPageSize and setFilters should trigger refresh and update items and total signals`
-- [ ] 5.4 Implementar `apps/frontend/src/app/shared/components/crud/crud-table-data-source.ts` conforme Seção 4.2 da especificação.
-- [ ] 5.5 **Testes** em `apps/frontend/src/app/shared/components/crud/ui-paginator.component.spec.ts`:
+- [x] 5.4 Implementar `apps/frontend/src/app/shared/components/crud/crud-table-data-source.ts` conforme Seção 4.2 da especificação.
+- [x] 5.5 **Testes** em `apps/frontend/src/app/shared/components/crud/ui-paginator.component.spec.ts`:
   - `should display current range and total items`
   - `should emit page change when clicking next, prev, first, last or page number`
   - `should emit limit change and reset to page 1 when changing page size selector`
-- [ ] 5.6 Implementar `apps/frontend/src/app/shared/components/crud/ui-paginator.component.ts` conforme Seção 4.3 da especificação.
-- [ ] 5.7 **Testes** em `apps/frontend/src/app/shared/components/crud/ui-data-table.component.spec.ts`:
+- [x] 5.6 Implementar `apps/frontend/src/app/shared/components/crud/ui-paginator.component.ts` conforme Seção 4.3 da especificação.
+- [x] 5.7 **Testes** em `apps/frontend/src/app/shared/components/crud/ui-data-table.component.spec.ts`:
   - `should render striped rows (zebra pattern) and column headers`
   - `should trigger single sort on header click and multi-sort on shift+click, showing priority badges (1, 2)`
   - `should format boolean columns as badges, currency-cents as BRL (R$) and masked values (99999 or missing role) as restricted badge`
   - `should render row actions respecting permission, visible(row) and disabled(row) predicates`
-- [ ] 5.8 Implementar `apps/frontend/src/app/shared/components/crud/ui-data-table.component.ts` conforme Seção 4.3 da especificação.
-- [ ] 5.9 **Checkpoint da Fase 5**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
+- [x] 5.8 Implementar `apps/frontend/src/app/shared/components/crud/ui-data-table.component.ts` conforme Seção 4.3 da especificação.
+- [x] 5.9 **Checkpoint da Fase 5**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
 
 ---
 
@@ -342,4 +342,5 @@
 - **Fase 2**: Evoluído `BusinessException` e `AllExceptionsFilter` para suportar `details` por campo; atualizados os validadores de `CategoriasService`, `PerfisService` e `UsersService`; adicionado suporte a `relationField` e `requiredRole` em `FilterRule` e `crud-query.ts`; criado `SmartFilterMetadataService` e `ISmartFilterConfigProvider`. Testes, typecheck e lint do backend 100% aprovados.
 - **Fase 3**: Implementados `@FormFieldMeta` e `DtoMetadataExplorer` com suporte a herança de DTOs (`BaseManagedUserDto` e `createUpdateDto`) e cruzamento com `@Masked`; enriquecidos DTOs e `CrudConfig` de Categorias, Perfis e Usuários; expostos endpoints `GET /:resource/meta`, `/meta/filters` e `/meta/form` no `createCrudController`. Testes unitários, de integração, lint, typecheck e build do backend 100% aprovados.
 - **Fase 4**: Implementados `LoadingService` (singleton com debounce de 150ms), `loadingInterceptor` (com suporte a `SKIP_GLOBAL_LOADING`) e `<ui-loading-overlay>`; encapsulado `ngx-sonner` no `ToastService` e `ToastComponent` mantendo compatibilidade com signal `toasts`; criado módulo encapsulado de dialogs (`UiDialogService` e `UiConfirmDialogComponent` sobre `@angular/cdk/dialog`); implementados `FormErrorHandlerService` e `errorInterceptor` para tratamento padronizado de erros em 3 níveis e leitura automática de erros no `<ui-input>`. Testes e typecheck do frontend 100% aprovados.
+- **Fase 5**: Implementados `GenericCrudService` (com serialização de paginação, multi-sort, filtros `campo__op=valor`, cache de `/meta`, `?version` em `remove` e `SKIP_GLOBAL_LOADING`), `CrudTableDataSource` (com clique simples e `Shift + Clique` para multi-sort), `UiPaginatorComponent` e `UiDataTableComponent` (linhas zebradas, prioridade de ordenação múltipla, formatação de `currency-cents`, máscara `99999`/`DADOS_SENSIVEIS`, badges e ações por linha). Testes e typecheck do frontend 100% aprovados.
 

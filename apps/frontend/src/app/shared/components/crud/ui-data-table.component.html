@@ -1,0 +1,203 @@
+<div class="w-full overflow-x-auto bg-card border border-border rounded-xl shadow-xs">
+  <table class="w-full text-sm text-left text-foreground border-collapse">
+    <thead class="bg-muted/60 text-muted-foreground border-b border-border text-xs uppercase tracking-wider">
+      <tr>
+        @for (col of dataSource().columns(); track col.key) {
+          <th
+            scope="col"
+            class="px-4 py-3.5 font-semibold select-none"
+            [class.text-center]="col.align === 'center'"
+            [class.text-right]="col.align === 'right'"
+            [class.cursor-pointer]="isColumnSortable(col)"
+            [class.hover:text-foreground]="isColumnSortable(col)"
+            [attr.data-testid]="'sort-header-' + (col.sortField || col.key)"
+            (click)="onHeaderClick(col, $event)"
+          >
+            <div
+              class="inline-flex items-center gap-1.5"
+              [class.justify-center]="col.align === 'center'"
+              [class.justify-end]="col.align === 'right'"
+            >
+              <span>{{ col.label }}</span>
+
+              @if (isColumnSortable(col)) {
+                @let sortInfo = getSortInfo(col);
+                <span class="inline-flex items-center gap-1">
+                  @if (sortInfo.direction === 'ASC') {
+                    <svg
+                      class="w-3.5 h-3.5 text-primary"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-label="Ordenado crescente"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M5 15l7-7 7 7"
+                      />
+                    </svg>
+                  } @else if (sortInfo.direction === 'DESC') {
+                    <svg
+                      class="w-3.5 h-3.5 text-primary"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-label="Ordenado decrescente"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2.5"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  } @else {
+                    <svg
+                      class="w-3.5 h-3.5 text-muted-foreground/50"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8 9l4-4 4 4m0 6l-4 4-4-4"
+                      />
+                    </svg>
+                  }
+
+                  @if (sortInfo.priority !== null && dataSource().sorts().length > 1) {
+                    <span
+                      [attr.data-testid]="'sort-priority-' + (col.sortField || col.key)"
+                      class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[10px] font-bold"
+                    >
+                      {{ sortInfo.priority }}
+                    </span>
+                  }
+                </span>
+              }
+            </div>
+          </th>
+        }
+
+        @if (hasPermittedActions()) {
+          <th scope="col" class="px-4 py-3.5 font-semibold text-right">
+            Operações
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody class="divide-y divide-border">
+      @for (row of dataSource().items(); track row.id) {
+        <tr class="odd:bg-background even:bg-muted/30 hover:bg-primary/5 transition-colors">
+          @for (col of dataSource().columns(); track col.key) {
+            <td
+              class="px-4 py-3.5 whitespace-nowrap"
+              [class.text-center]="col.align === 'center'"
+              [class.text-right]="col.align === 'right'"
+            >
+              @switch (col.type) {
+                @case ('boolean') {
+                  @let boolVal = getBooleanValue(row, col);
+                  <ui-badge
+                    [variant]="
+                      boolVal
+                        ? col.booleanLabels?.trueVariant || 'success'
+                        : col.booleanLabels?.falseVariant || 'secondary'
+                    "
+                  >
+                    {{
+                      boolVal
+                        ? col.booleanLabels?.trueLabel || 'Sim'
+                        : col.booleanLabels?.falseLabel || 'Não'
+                    }}
+                  </ui-badge>
+                }
+                @case ('currency-cents') {
+                  @if (isMaskedCell(row, col)) {
+                    <ui-badge variant="outline" title="Dado restrito (exige permissão)">
+                      R$ •••••
+                    </ui-badge>
+                  } @else {
+                    <span>{{ formatCurrencyCents(row, col) }}</span>
+                  }
+                }
+                @case ('date') {
+                  <span>{{ formatDate(row, col, false) }}</span>
+                }
+                @case ('datetime') {
+                  <span>{{ formatDate(row, col, true) }}</span>
+                }
+                @case ('badges') {
+                  @let badges = getBadges(row, col);
+                  @if (badges.length > 0) {
+                    <div class="flex flex-wrap gap-1">
+                      @for (b of badges; track b.label) {
+                        <ui-badge [variant]="b.variant || 'info'">
+                          {{ b.label }}
+                        </ui-badge>
+                      }
+                    </div>
+                  } @else {
+                    <span class="text-xs text-muted-foreground italic">Nenhum</span>
+                  }
+                }
+                @default {
+                  <span>{{ formatTextCell(row, col) }}</span>
+                }
+              }
+            </td>
+          }
+
+          @if (hasPermittedActions()) {
+            <td class="px-4 py-3.5 whitespace-nowrap text-right">
+              <div class="inline-flex items-center justify-end gap-1.5">
+                @for (action of getVisibleActionsForRow(row); track action.id) {
+                  <button
+                    type="button"
+                    ui-button
+                    size="sm"
+                    [variant]="action.variant || 'outline'"
+                    [disabled]="isActionDisabled(action, row)"
+                    [title]="
+                      isActionDisabled(action, row)
+                        ? action.disabledTooltip || 'Operação indisponível'
+                        : getActionLabel(action, row)
+                    "
+                    [attr.data-testid]="'action-' + action.id"
+                    (click)="action.handler(row)"
+                  >
+                    {{ getActionLabel(action, row) }}
+                  </button>
+                }
+              </div>
+            </td>
+          }
+        </tr>
+      } @empty {
+        <tr>
+          <td
+            [attr.colspan]="
+              dataSource().columns().length + (hasPermittedActions() ? 1 : 0)
+            "
+            class="px-6 py-12 text-center"
+          >
+            <div class="flex flex-col items-center justify-center gap-1.5">
+              <p class="text-base font-semibold text-foreground">
+                {{ emptyTitle() }}
+              </p>
+              <p class="text-sm text-muted-foreground">
+                {{ emptyDescription() }}
+              </p>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
