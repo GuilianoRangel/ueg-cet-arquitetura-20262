@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
@@ -64,7 +65,9 @@ export class GenericCrudFormComponent {
       const currentSchema = this.schema();
       const data = this.initialData();
       if (currentSchema) {
-        this.rebuildForm(currentSchema, data);
+        untracked(() => {
+          this.rebuildForm(currentSchema, data);
+        });
       }
     });
   }

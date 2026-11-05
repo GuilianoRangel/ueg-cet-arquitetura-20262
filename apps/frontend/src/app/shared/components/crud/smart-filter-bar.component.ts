@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
@@ -87,14 +88,16 @@ export class SmartFilterBarComponent {
       if (!cfg) {
         return;
       }
-      for (const field of cfg.fields) {
-        if (field.optionsEndpoint) {
-          this.loadDynamicOptionsForField(field);
+      untracked(() => {
+        for (const field of cfg.fields) {
+          if (field.optionsEndpoint) {
+            this.loadDynamicOptionsForField(field);
+          }
+          if (field.controlType === 'master-detail' && field.masterDetail) {
+            this.loadMasterOptionsForField(field);
+          }
         }
-        if (field.controlType === 'master-detail' && field.masterDetail) {
-          this.loadMasterOptionsForField(field);
-        }
-      }
+      });
     });
   }
 

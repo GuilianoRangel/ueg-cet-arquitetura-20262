@@ -1,8 +1,8 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   computed,
-  effect,
   inject,
   input,
   signal,
@@ -60,7 +60,7 @@ export interface CrudPageConfig<
 })
 export class GenericCrudPageComponent<
   E extends { id: string; version?: number } = { id: string; version?: number },
-> {
+> implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly dialogService = inject(UiDialogService);
   private readonly toastService = inject(ToastService);
@@ -91,13 +91,11 @@ export class GenericCrudPageComponent<
     return `${isFeminine ? 'Nova' : 'Novo'} ${label}`;
   });
 
-  constructor() {
-    effect(() => {
-      const cfg = this.config();
-      if (cfg) {
-        this.initPage(cfg);
-      }
-    });
+  ngOnInit(): void {
+    const cfg = this.config();
+    if (cfg) {
+      this.initPage(cfg);
+    }
   }
 
   private initPage(cfg: CrudPageConfig<E>): void {
