@@ -1,0 +1,44 @@
+@if (config(); as cfg) {
+  <div class="p-6 max-w-7xl mx-auto flex flex-col gap-6">
+    <!-- Cabeçalho da Página -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex flex-col gap-1">
+        <h1 class="text-2xl font-bold text-foreground tracking-tight">
+          {{ cfg.title }}
+        </h1>
+        @if (cfg.subtitle) {
+          <p class="text-sm text-muted-foreground">{{ cfg.subtitle }}</p>
+        }
+      </div>
+
+      @if (canCreate()) {
+        <button
+          type="button"
+          ui-button
+          variant="default"
+          data-testid="crud-page-create-btn"
+          (click)="openCreateModal()"
+          class="gap-2 self-start sm:self-auto"
+        >
+          <span>+ {{ createButtonLabel() }}</span>
+        </button>
+      }
+    </div>
+
+    <!-- Barra de Filtros Inteligente -->
+    <app-smart-filter-bar
+      [config]="meta()?.filters ?? null"
+      (filterChange)="onFilterChange($event)"
+    ></app-smart-filter-bar>
+
+    <!-- Tabela de Dados e Paginador -->
+    <div class="flex flex-col">
+      <ui-data-table
+        [dataSource]="dataSource()"
+        [emptyTitle]="'Nenhum(a) ' + cfg.entityLabel.toLowerCase() + ' encontrado(a)'"
+      ></ui-data-table>
+
+      <ui-paginator [dataSource]="paginatorDataSource()"></ui-paginator>
+    </div>
+  </div>
+}

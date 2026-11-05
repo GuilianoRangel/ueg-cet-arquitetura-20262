@@ -266,7 +266,7 @@
 > - Ler: `specs/crud-generico-frontend.md` (Seções 4.5, 4.6 e 6.1), `apps/frontend/src/app/core/errors/form-error-handler.service.ts`, `apps/frontend/src/app/shared/components/ui/dialog/ui-dialog.service.ts`.
 > - Skills ativas: `execute-plan`, `angular-dev`, `angular-testing`, `tailwind-design-system`, `frontend-design`.
 
-- [ ] 7.1 **Testes** em `apps/frontend/src/app/shared/components/crud/generic-crud-form.component.spec.ts`:
+- [x] 7.1 **Testes** em `apps/frontend/src/app/shared/components/crud/generic-crud-form.component.spec.ts`:
   - `should dynamically build FormGroup controls and validators from CrudFormSchemaDto (create vs update)`
   - `should load options from optionsEndpoint for select and multiselect fields (e.g. /perfis and /roles)`
   - `should map entityRelationProperty (e.g. perfis -> perfilIds) when populating initialData in update mode`
@@ -274,15 +274,15 @@
   - `should disable masked/readOnly fields and omit fields marked with omitOnSubmit from payload`
   - `should display field-level backend error (e.g. USER_EMAIL_EXISTS on email) directly below the field and clear it on edit`
   - `should display non-field business error (e.g. USER_LAST_ADMIN) in the top alert banner of the form`
-- [ ] 7.2 Implementar `apps/frontend/src/app/shared/components/crud/generic-crud-form.component.ts` (e modal wrapper `generic-crud-form-modal.component.ts`) conforme Seções 4.5 e 6.1 da especificação.
-- [ ] 7.3 **Testes** em `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.spec.ts`:
+- [x] 7.2 Implementar `apps/frontend/src/app/shared/components/crud/generic-crud-form.component.ts` (e modal wrapper `generic-crud-form-modal.component.ts`) conforme Seções 4.5 e 6.1 da especificação.
+- [x] 7.3 **Testes** em `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.spec.ts`:
   - `should load metadata and initial table page on init`
   - `should show Novo button only when user has <resource>:create role`
   - `should open GenericCrudFormModal in create mode and refresh table after successful creation`
   - `should fetch latest entity via findOne, open GenericCrudFormModal in update mode and refresh table after update`
   - `should open confirmation dialog on delete, call service.remove(id, version) and show success toast`
-- [ ] 7.4 Implementar `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.ts` conforme Seção 4.6 da especificação.
-- [ ] 7.5 **Checkpoint da Fase 7**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
+- [x] 7.4 Implementar `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.ts` conforme Seção 4.6 da especificação.
+- [x] 7.5 **Checkpoint da Fase 7**: Executar `pnpm --filter frontend test && pnpm --filter frontend typecheck`.
 
 ---
 
@@ -344,4 +344,5 @@
 - **Fase 4**: Implementados `LoadingService` (singleton com debounce de 150ms), `loadingInterceptor` (com suporte a `SKIP_GLOBAL_LOADING`) e `<ui-loading-overlay>`; encapsulado `ngx-sonner` no `ToastService` e `ToastComponent` mantendo compatibilidade com signal `toasts`; criado módulo encapsulado de dialogs (`UiDialogService` e `UiConfirmDialogComponent` sobre `@angular/cdk/dialog`); implementados `FormErrorHandlerService` e `errorInterceptor` para tratamento padronizado de erros em 3 níveis e leitura automática de erros no `<ui-input>`. Testes e typecheck do frontend 100% aprovados.
 - **Fase 5**: Implementados `GenericCrudService` (com serialização de paginação, multi-sort, filtros `campo__op=valor`, cache de `/meta`, `?version` em `remove` e `SKIP_GLOBAL_LOADING`), `CrudTableDataSource` (com clique simples e `Shift + Clique` para multi-sort), `UiPaginatorComponent` e `UiDataTableComponent` (linhas zebradas, prioridade de ordenação múltipla, formatação de `currency-cents`, máscara `99999`/`DADOS_SENSIVEIS`, badges e ações por linha). Testes e typecheck do frontend 100% aprovados.
 - **Fase 6**: Implementado `SmartFilterBarComponent` com suporte completo a filtros rápidos (texto, select estático/dinâmico via `optionsEndpoint`, booleano e select mestre-detalhe em cascata via `masterDetail`) e painel expansível de Filtros Avançados dinâmico (seleção de campo, operadores permitidos e inputs adaptativos incluindo intervalo `between`). Testes e typecheck do frontend 100% aprovados.
+- **Fase 7**: Implementados `GenericCrudFormComponent`, `GenericCrudFormModalComponent` e `GenericCrudPageComponent` com geração reativa de formulários a partir de `CrudFormSchemaDto`, conversão monetária em centavos, mapeamento de relações (`entityRelationProperty`), exibição de erros Nível 1 (campo) e Nível 2 (banner de negócio), e orquestração completa de listagem, criação, edição e exclusão com confirmação. Testes e typecheck do frontend 100% aprovados.
 

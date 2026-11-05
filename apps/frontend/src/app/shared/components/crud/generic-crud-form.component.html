@@ -1,0 +1,181 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+  @if (bannerError(); as bannerMsg) {
+    <div
+      data-testid="form-error-banner"
+      role="alert"
+      class="bg-destructive/10 border border-destructive/30 text-destructive rounded-xl p-4 flex items-start gap-3 text-sm"
+    >
+      <svg
+        class="w-5 h-5 flex-shrink-0 mt-0.5 text-destructive"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+        />
+      </svg>
+      <span class="flex-1 font-medium">{{ bannerMsg }}</span>
+    </div>
+  }
+
+  @for (field of orderedFields(); track field.name) {
+    @if (!field.hidden && field.inputType !== 'hidden') {
+      <div class="flex flex-col gap-1.5" [attr.data-testid]="'form-field-' + field.name">
+        @switch (field.inputType) {
+          @case ('boolean') {
+            <label
+              class="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                [formControlName]="field.name"
+                [attr.data-testid]="'input-' + field.name"
+                class="h-4 w-4 rounded border-border text-primary focus:ring-ring"
+              />
+              <div class="flex flex-col">
+                <span class="text-sm font-medium text-foreground">{{
+                  field.label
+                }}</span>
+                @if (field.description) {
+                  <span class="text-xs text-muted-foreground">{{
+                    field.description
+                  }}</span>
+                }
+              </div>
+            </label>
+          }
+
+          @case ('select') {
+            <label
+              [for]="'ctrl-' + field.name"
+              class="text-sm font-medium text-foreground"
+            >
+              {{ field.label }}
+              @if (field.required) {
+                <span class="text-destructive">*</span>
+              }
+            </label>
+            <select
+              [id]="'ctrl-' + field.name"
+              [formControlName]="field.name"
+              [attr.data-testid]="'input-' + field.name"
+              class="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+              [class.border-destructive]="!!getControlErrorMessage(field.name)"
+            >
+              <option value="">Selecione...</option>
+              @for (opt of getFieldOptions(field); track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+            @if (getControlErrorMessage(field.name); as err) {
+              <p class="text-sm text-destructive font-medium" data-testid="field-error">
+                {{ err }}
+              </p>
+            }
+          }
+
+          @case ('multiselect') {
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-medium text-foreground">
+                {{ field.label }}
+                @if (field.required) {
+                  <span class="text-destructive">*</span>
+                }
+              </label>
+              <div
+                class="border border-border rounded-lg p-3 bg-background max-h-48 overflow-y-auto flex flex-col gap-2"
+                [class.border-destructive]="!!getControlErrorMessage(field.name)"
+                [attr.data-testid]="'multiselect-' + field.name"
+              >
+                @for (opt of getFieldOptions(field); track opt.value) {
+                  <label class="flex items-center gap-2.5 text-sm text-foreground cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      [checked]="isMultiSelectOptionChecked(field.name, opt.value)"
+                      [disabled]="isControlDisabled(field.name)"
+                      (change)="onMultiSelectToggle(field.name, opt.value, $event)"
+                      class="h-4 w-4 rounded border-border text-primary focus:ring-ring"
+                    />
+                    <span>{{ opt.label }}</span>
+                  </label>
+                } @empty {
+                  <span class="text-xs text-muted-foreground italic">
+                    Nenhuma opção disponível
+                  </span>
+                }
+              </div>
+              @if (getControlErrorMessage(field.name); as err) {
+                <p class="text-sm text-destructive font-medium" data-testid="field-error">
+                  {{ err }}
+                </p>
+              }
+            </div>
+          }
+
+          @case ('currency') {
+            @if (field.masked) {
+              <div class="flex flex-col gap-1.5">
+                <label class="text-sm font-medium text-foreground">{{
+                  field.label
+                }}</label>
+                <div
+                  class="flex h-10 w-full items-center rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                >
+                  R$ ••••• (Requer permissão {{ field.requiredRole || 'especial' }})
+                </div>
+              </div>
+            } @else {
+              <ui-input
+                [id]="'ctrl-' + field.name"
+                [label]="field.label + (field.required ? ' *' : '')"
+                type="number"
+                [placeholder]="field.placeholder || '0,00'"
+                [formControlName]="field.name"
+                [control]="form.get(field.name)"
+                [error]="getControlErrorMessage(field.name)"
+              ></ui-input>
+            }
+          }
+
+          @default {
+            <ui-input
+              [id]="'ctrl-' + field.name"
+              [label]="field.label + (field.required ? ' *' : '')"
+              [type]="getHtmlInputType(field)"
+              [placeholder]="field.placeholder || ''"
+              [formControlName]="field.name"
+              [control]="form.get(field.name)"
+              [error]="getControlErrorMessage(field.name)"
+            ></ui-input>
+          }
+        }
+      </div>
+    }
+  }
+
+  <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
+    <button
+      type="button"
+      ui-button
+      variant="outline"
+      data-testid="crud-form-cancel"
+      [disabled]="submitting()"
+      (click)="onCancel()"
+    >
+      Cancelar
+    </button>
+    <button
+      type="submit"
+      ui-button
+      variant="default"
+      data-testid="crud-form-submit"
+      [disabled]="submitting()"
+    >
+      {{ submitting() ? 'Salvando...' : 'Salvar' }}
+    </button>
+  </div>
+</form>
