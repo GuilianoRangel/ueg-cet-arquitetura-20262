@@ -35,7 +35,7 @@ validação, controle de permissões por operação, hooks antes/depois de cada 
 | :--- | :--- |
 | Desenvolvedor | Cria um CRUD novo estendendo a base genérica de forma declarativa. |
 | Usuário autenticado | Possui 0..N perfis; cada perfil agrupa roles; as roles efetivas do usuário são a união das roles dos seus perfis ativos. |
-| Administrador | Usuário vinculado ao perfil de sistema "Administrador" (todas as roles, **exceto** `DADOS_SENSIVEIS`). |
+| Administrador | Usuário vinculado ao perfil de sistema "Administrador" (todas as roles, **incluindo** `DADOS_SENSIVEIS`). |
 | Frontend | Consome o formato padronizado de erro e o endpoint de roles. |
 
 ---
@@ -198,7 +198,7 @@ Todos os `id` são UUID v4 em `varchar(36)`. Datas em UTC. Todas as entidades de
 
 ### 4.6 Seed (idempotente, executado após as migrations)
 `SeedService` (`OnApplicationBootstrap`), em uma única transação, sem passar pelo CRUD genérico (`ultimoUsuarioId = null`):
-1. **Perfil "Administrador"** (`ADMIN_PERFIL_NOME`): se não existir, cria com `sistema=true`, `ativo=true`. Em **toda** inicialização sincroniza `roles = RolesCatalog.all() − [DADOS_SENSIVEIS]` (atualiza só se diferir) e chama `PermissionsService.invalidateAll()`.
+1. **Perfil "Administrador"** (`ADMIN_PERFIL_NOME`): se não existir, cria com `sistema=true`, `ativo=true`. Em **toda** inicialização sincroniza `roles = RolesCatalog.all()` (incluindo `DADOS_SENSIVEIS`, atualiza só se diferir) e chama `PermissionsService.invalidateAll()`.
 2. **Usuário admin**: e-mail `ADMIN_EMAIL` (padrão `admin@ueg.br`), nome `Administrador`, senha `ADMIN_PASSWORD`, `ativo=true`, vinculado ao perfil Administrador. **Criado somente se o e-mail não existir** (usuário existente nunca é alterado).
    - `ADMIN_PASSWORD` ausente: em `NODE_ENV !== 'production'` usa `admin123`; em `production` a aplicação **falha na inicialização** com erro claro.
 3. Remove `users/seed.ts` e `UsersService.createAdmin`.

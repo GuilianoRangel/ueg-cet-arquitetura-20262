@@ -58,7 +58,7 @@ sequenceDiagram
 ### Seed de Dados Iniciais e Migrations
 O sistema possui migrations versionadas gerenciadas pelo TypeORM (`apps/backend/src/migrations/`) e um `SeedService` (`apps/backend/src/database/seed.service.ts`) executado automaticamente na inicialização da aplicação via o hook `OnModuleInit` do `DatabaseModule`.
 As migrations rodam primeiro e, em seguida, o seed é executado de forma **idempotente**:
-* **Perfil Administrador**: Criado com todas as roles do sistema (exceto `DADOS_SENSIVEIS`).
+* **Perfil Administrador**: Criado com todas as roles do sistema (incluindo `DADOS_SENSIVEIS`).
 * **Perfil Usuário Padrão**: Criado com permissões básicas de consulta.
 * **Usuário Administrador**: Criado a partir das variáveis `ADMIN_EMAIL` (default: `admin@ueg.br`) e `ADMIN_PASSWORD` (default: `admin123`), com `ativo: true` e vinculado ao perfil Administrador.
 
