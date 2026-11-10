@@ -1,7 +1,7 @@
 import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { ADMIN_PERFIL_NOME, SENSITIVE_DATA_ROLE } from '@repo/utils';
+import { ADMIN_PERFIL_NOME } from '@repo/utils';
 import { Perfil } from '../../perfis/entities/perfil.entity';
 import { User } from '../../users/entities/user.entity';
 import { TransactionRunner } from '../../common/crud/transaction-runner';
@@ -43,9 +43,7 @@ export class SeedService implements OnApplicationBootstrap {
         where: { nome: ADMIN_PERFIL_NOME },
       });
 
-      const catalogRolesWithoutSensitive = RolesCatalog.all().filter(
-        (role) => role !== SENSITIVE_DATA_ROLE,
-      );
+      const catalogRoles = RolesCatalog.all();
 
       let rolesUpdated = false;
 
@@ -54,7 +52,7 @@ export class SeedService implements OnApplicationBootstrap {
           nome: ADMIN_PERFIL_NOME,
           ativo: true,
           sistema: true,
-          roles: catalogRolesWithoutSensitive,
+          roles: catalogRoles,
           ultimoUsuarioId: null,
         });
         adminPerfil = await perfilRepo.save(adminPerfil);
@@ -65,14 +63,14 @@ export class SeedService implements OnApplicationBootstrap {
           ? adminPerfil.roles
           : [];
         const currentSorted = [...currentRoles].sort();
-        const targetSorted = [...catalogRolesWithoutSensitive].sort();
+        const targetSorted = [...catalogRoles].sort();
 
         const isDifferent =
           currentSorted.length !== targetSorted.length ||
           currentSorted.some((val, idx) => val !== targetSorted[idx]);
 
         if (isDifferent) {
-          adminPerfil.roles = catalogRolesWithoutSensitive;
+          adminPerfil.roles = catalogRoles;
           await perfilRepo.save(adminPerfil);
           rolesUpdated = true;
           this.logger.log(

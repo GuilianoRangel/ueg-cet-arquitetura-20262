@@ -62,7 +62,7 @@ describe('SeedService', () => {
     );
   };
 
-  it('should create perfil Administrador with sistema=true and all catalog roles except DADOS_SENSIVEIS', async () => {
+  it('should create perfil Administrador with sistema=true and all catalog roles including DADOS_SENSIVEIS', async () => {
     const service = createService();
     await service.onApplicationBootstrap();
 
@@ -77,7 +77,7 @@ describe('SeedService', () => {
     expect(adminPerfil?.roles).toEqual(
       expect.arrayContaining(['users:read', 'users:create', 'categorias:read']),
     );
-    expect(adminPerfil?.roles).not.toContain(SENSITIVE_DATA_ROLE);
+    expect(adminPerfil?.roles).toContain(SENSITIVE_DATA_ROLE);
   });
 
   it('should create admin user linked to perfil Administrador with ativo=true and hashed password', async () => {

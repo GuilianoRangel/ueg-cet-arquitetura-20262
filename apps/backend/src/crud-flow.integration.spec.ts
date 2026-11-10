@@ -108,7 +108,7 @@ describe('CRUD Flow End-to-End Integration', () => {
     expect(adminPerfil?.roles).toContain('users:read');
     expect(adminPerfil?.roles).toContain('perfis:read');
     expect(adminPerfil?.roles).toContain('categorias:read');
-    expect(adminPerfil?.roles).not.toContain(SENSITIVE_DATA_ROLE);
+    expect(adminPerfil?.roles).toContain(SENSITIVE_DATA_ROLE);
 
     const adminUser = await userRepo.findOne({
       where: { email: 'admin@ueg.br' },
@@ -119,7 +119,7 @@ describe('CRUD Flow End-to-End Integration', () => {
     expect(adminUser?.perfis.some((p) => p.id === adminPerfil?.id)).toBe(true);
   });
 
-  it('2. admin can log in and GET /auth/me/roles lists every role except DADOS_SENSIVEIS', async () => {
+  it('2. admin can log in and GET /auth/me/roles lists every role including DADOS_SENSIVEIS', async () => {
     const loginRes = await request(server)
       .post('/auth/login')
       .send({ email: 'admin@ueg.br', senha: 'adminPassword123' })
@@ -141,7 +141,7 @@ describe('CRUD Flow End-to-End Integration', () => {
     expect(rolesBody.roles).toContain('categorias:delete');
     expect(rolesBody.roles).toContain('perfis:create');
     expect(rolesBody.roles).toContain('users:create');
-    expect(rolesBody.roles).not.toContain(SENSITIVE_DATA_ROLE);
+    expect(rolesBody.roles).toContain(SENSITIVE_DATA_ROLE);
   });
 
   it('3. admin can create a perfil, a user with that perfil and the user receives its roles after cache invalidation', async () => {
@@ -243,10 +243,42 @@ describe('CRUD Flow End-to-End Integration', () => {
       .expect(403);
   });
 
-  it('5. admin without DADOS_SENSIVEIS creating categoria with valor gets 403 FORBIDDEN_SENSITIVE_FIELD in ApiErrorResponse format', async () => {
+  it('5. user without DADOS_SENSIVEIS creating categoria with valor gets 403 FORBIDDEN_SENSITIVE_FIELD in ApiErrorResponse format', async () => {
+    // Create editor perfil with categorias:create and categorias:read but without DADOS_SENSIVEIS
+    const editorPerfilRes = await request(server)
+      .post('/perfis')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        nome: 'Editor Categorias',
+        ativo: true,
+        roles: ['categorias:create', 'categorias:read'],
+      })
+      .expect(201);
+
+    const editorPerfilId = (editorPerfilRes.body as EntityResponse).id;
+
+    // Create editor user
+    await request(server)
+      .post('/users')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        email: 'editor@ueg.br',
+        nome: 'Usuario Editor',
+        senha: 'password123',
+        perfilIds: [editorPerfilId],
+      })
+      .expect(201);
+
+    // Login as editor
+    const editorLoginRes = await request(server)
+      .post('/auth/login')
+      .send({ email: 'editor@ueg.br', senha: 'password123' })
+      .expect(201);
+    const editorToken = (editorLoginRes.body as LoginResponse).access_token;
+
     const res = await request(server)
       .post('/categorias')
-      .set('Authorization', `Bearer ${adminToken}`)
+      .set('Authorization', `Bearer ${editorToken}`)
       .send({ nome: 'Com Valor', valor: 50000 })
       .expect(403);
 
@@ -261,50 +293,8 @@ describe('CRUD Flow End-to-End Integration', () => {
     expect(body.message).toContain('DADOS_SENSIVEIS');
   });
 
-  it('6. admin granted a perfil with DADOS_SENSIVEIS sees the real valor', async () => {
-    // Create sensitive perfil
-    const sensitivePerfilRes = await request(server)
-      .post('/perfis')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        nome: 'Acesso Dados Sensiveis',
-        ativo: true,
-        roles: [SENSITIVE_DATA_ROLE],
-      })
-      .expect(201);
-
-    const sensitiveBody = sensitivePerfilRes.body as EntityResponse;
-    const sensitivePerfilId = sensitiveBody.id;
-
-    // Find admin user id
-    const dataSource = app.get(DataSource);
-    const adminUser = await dataSource.getRepository(User).findOneOrFail({
-      where: { email: 'admin@ueg.br' },
-      relations: ['perfis'],
-    });
-
-    const currentPerfilIds = adminUser.perfis.map((p) => p.id);
-
-    // Grant sensitive perfil to admin
-    await request(server)
-      .patch(`/users/${adminUser.id}`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        perfilIds: [...currentPerfilIds, sensitivePerfilId],
-        version: adminUser.version,
-      })
-      .expect(200);
-
-    // Verify cache invalidation: admin roles now contain DADOS_SENSIVEIS
-    const updatedRolesRes = await request(server)
-      .get('/auth/me/roles')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .expect(200);
-
-    const updatedRolesBody = updatedRolesRes.body as RolesResponse;
-    expect(updatedRolesBody.roles).toContain(SENSITIVE_DATA_ROLE);
-
-    // Now admin can create categoria with valor
+  it('6. admin with DADOS_SENSIVEIS creates and sees real valor, while user without DADOS_SENSIVEIS sees 99999 until granted', async () => {
+    // Admin (having DADOS_SENSIVEIS) can create categoria with valor
     const createCatRes = await request(server)
       .post('/categorias')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -336,6 +326,62 @@ describe('CRUD Flow End-to-End Integration', () => {
       .expect(200);
     const leitorFindOneBody = leitorFindOne.body as EntityResponse;
     expect(leitorFindOneBody.valor).toBe(99999);
+
+    // Create sensitive perfil
+    const sensitivePerfilRes = await request(server)
+      .post('/perfis')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        nome: 'Acesso Dados Sensiveis',
+        ativo: true,
+        roles: [SENSITIVE_DATA_ROLE],
+      })
+      .expect(201);
+
+    const sensitiveBody = sensitivePerfilRes.body as EntityResponse;
+    const sensitivePerfilId = sensitiveBody.id;
+
+    // Find editor user id
+    const dataSource = app.get(DataSource);
+    const editorUser = await dataSource.getRepository(User).findOneOrFail({
+      where: { email: 'editor@ueg.br' },
+      relations: ['perfis'],
+    });
+
+    const currentPerfilIds = editorUser.perfis.map((p) => p.id);
+
+    // Grant sensitive perfil to editor
+    await request(server)
+      .patch(`/users/${editorUser.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        perfilIds: [...currentPerfilIds, sensitivePerfilId],
+        version: editorUser.version,
+      })
+      .expect(200);
+
+    const editorLogin = await request(server)
+      .post('/auth/login')
+      .send({ email: 'editor@ueg.br', senha: 'password123' })
+      .expect(201);
+    const editorToken = (editorLogin.body as LoginResponse).access_token;
+
+    // Verify cache invalidation: editor roles now contain DADOS_SENSIVEIS
+    const updatedRolesRes = await request(server)
+      .get('/auth/me/roles')
+      .set('Authorization', `Bearer ${editorToken}`)
+      .expect(200);
+
+    const updatedRolesBody = updatedRolesRes.body as RolesResponse;
+    expect(updatedRolesBody.roles).toContain(SENSITIVE_DATA_ROLE);
+
+    // Now editor also sees real valor
+    const editorFindOneUpdated = await request(server)
+      .get(`/categorias/${catBody.id}`)
+      .set('Authorization', `Bearer ${editorToken}`)
+      .expect(200);
+    const updatedBody = editorFindOneUpdated.body as EntityResponse;
+    expect(updatedBody.valor).toBe(75000);
   });
 
   it('7. GET /categorias?limit=5001 returns 400 QUERY_PARAM_INVALID in ApiErrorResponse format', async () => {
