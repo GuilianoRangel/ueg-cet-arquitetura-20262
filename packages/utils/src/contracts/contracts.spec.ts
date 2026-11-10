@@ -13,6 +13,9 @@ import {
   CrudFormSchemaDto,
   CrudFormFieldSchema,
   CrudResourceMetaDto,
+  FuncionalidadeAcaoDto,
+  FuncionalidadeGroupDto,
+  RolesSyncResultDto,
 } from "../index";
 
 describe("Contracts", () => {
@@ -21,8 +24,9 @@ describe("Contracts", () => {
     expect(PAGE_MAX_LIMIT).toBe(5000);
   });
 
-  it("should export SENSITIVE_DATA_ROLE as DADOS_SENSIVEIS", () => {
-    expect(SENSITIVE_DATA_ROLE).toBe("DADOS_SENSIVEIS");
+  it("should export SENSITIVE_DATA_ROLE as global:dados-sensiveis and match ROLE_FORMAT", () => {
+    expect(SENSITIVE_DATA_ROLE).toBe("global:dados-sensiveis");
+    expect(ROLE_FORMAT.test(SENSITIVE_DATA_ROLE)).toBe(true);
   });
 
   it("should export MASK_DEFAULT_NUMERIC as 99999", () => {
@@ -188,5 +192,29 @@ describe("Contracts", () => {
     expect(meta.createForm.mode).toBe("create");
     expect(meta.updateForm.mode).toBe("update");
     expect(meta.updateForm.fields).toHaveLength(2);
+  });
+
+  it("should validate structure of FuncionalidadeAcaoDto, FuncionalidadeGroupDto and RolesSyncResultDto", () => {
+    const acao: FuncionalidadeAcaoDto = {
+      id: "123e4567-e89b-12d3-a456-426614174000",
+      acao: "create",
+      role: "categorias:create",
+    };
+
+    const group: FuncionalidadeGroupDto = {
+      id: "123e4567-e89b-12d3-a456-426614174001",
+      nome: "categorias",
+      acoes: [acao],
+    };
+
+    const syncResult: RolesSyncResultDto = {
+      addedActions: 2,
+      removedActions: 1,
+      totalActiveActions: 15,
+    };
+
+    expect(group.nome).toBe("categorias");
+    expect(group.acoes[0].role).toBe("categorias:create");
+    expect(syncResult.totalActiveActions).toBe(15);
   });
 });
