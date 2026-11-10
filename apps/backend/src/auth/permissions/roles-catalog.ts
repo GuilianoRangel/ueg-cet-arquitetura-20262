@@ -1,16 +1,16 @@
-import { ROLE_FORMAT, SENSITIVE_DATA_ROLE } from '@repo/utils';
+import { ROLE_FORMAT } from '@repo/utils';
 
 export class RolesCatalog {
   private static readonly roles = new Set<string>();
 
   public static isValid(role: string): boolean {
-    return role === SENSITIVE_DATA_ROLE || ROLE_FORMAT.test(role);
+    return ROLE_FORMAT.test(role);
   }
 
   public static register(role: string): void {
     if (!this.isValid(role)) {
       throw new Error(
-        `Role inválida: "${role}". Deve seguir o formato recurso:acao ou ser DADOS_SENSIVEIS.`,
+        `Role inválida: "${role}". Deve seguir o formato funcionalidade:acao.`,
       );
     }
     this.roles.add(role);

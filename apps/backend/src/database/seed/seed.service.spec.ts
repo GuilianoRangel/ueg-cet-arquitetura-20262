@@ -5,6 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import { SeedService } from './seed.service';
 import { User } from '../../users/entities/user.entity';
 import { Perfil } from '../../perfis/entities/perfil.entity';
+import { Funcionalidade } from '../../perfis/entities/funcionalidade.entity';
+import { FuncionalidadeAcao } from '../../perfis/entities/funcionalidade-acao.entity';
 import { Categoria } from '../../categorias/entities/categoria.entity';
 import { TransactionRunner } from '../../common/crud/transaction-runner';
 import { PermissionsService } from '../../auth/permissions/permissions.service';
@@ -27,7 +29,7 @@ describe('SeedService', () => {
     dataSource = new DataSource({
       type: 'sqlite',
       database: ':memory:',
-      entities: [User, Perfil, Categoria],
+      entities: [User, Perfil, Funcionalidade, FuncionalidadeAcao, Categoria],
       migrations: [join(__dirname, '..', 'migrations', '*{.ts,.js}')],
       synchronize: false,
       migrationsRun: true,

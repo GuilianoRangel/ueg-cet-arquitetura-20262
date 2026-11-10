@@ -51,29 +51,29 @@
 > - Ler: `specs/perfis-funcionalidades-roles.md` (Seções 2 e 3), `apps/backend/src/auth/permissions/roles-catalog.ts`, `apps/backend/src/perfis/entities/perfil.entity.ts`, `apps/backend/src/migrations/`, `apps/backend/src/database/migrations.integration.spec.ts`.
 > - Skills ativas: `execute-plan`, `nestjs-best-practices`, `nestjs-testing-expert`, `clean-code`.
 
-- [ ] 2.1 **Testes** em `apps/backend/src/auth/permissions/roles-catalog.spec.ts`:
+- [x] 2.1 **Testes** em `apps/backend/src/auth/permissions/roles-catalog.spec.ts`:
   - Validar que `RolesCatalog.isValid` aceita `'global:dados-sensiveis'` e `'perfis:sync'` diretamente via `ROLE_FORMAT` e rejeita strings sem `:`.
-- [ ] 2.2 Simplificar `apps/backend/src/auth/permissions/roles-catalog.ts`:
+- [x] 2.2 Simplificar `apps/backend/src/auth/permissions/roles-catalog.ts`:
   - Em `isValid(role: string)`, validar exclusivamente com `ROLE_FORMAT.test(role)` e ajustar a mensagem de erro para indicar o formato `funcionalidade:acao`.
-- [ ] 2.3 Criar a entidade `Funcionalidade` em `apps/backend/src/perfis/entities/funcionalidade.entity.ts`:
+- [x] 2.3 Criar a entidade `Funcionalidade` em `apps/backend/src/perfis/entities/funcionalidade.entity.ts`:
   - `@Entity('funcionalidades')` estendendo `BaseEntity`.
   - `@Index('IDX_funcionalidades_nome_ativo', ['nome'], { unique: true, where: '"deletedAt" IS NULL' })`.
   - Coluna `nome` (`varchar`, length `100`).
   - Relação `@OneToMany(() => FuncionalidadeAcao, (acao) => acao.funcionalidade) acoes!: FuncionalidadeAcao[];`.
-- [ ] 2.4 Criar a entidade `FuncionalidadeAcao` em `apps/backend/src/perfis/entities/funcionalidade-acao.entity.ts`:
+- [x] 2.4 Criar a entidade `FuncionalidadeAcao` em `apps/backend/src/perfis/entities/funcionalidade-acao.entity.ts`:
   - `@Entity('funcionalidades_acoes')` estendendo `BaseEntity`.
   - `@Index('IDX_funcionalidades_acoes_unique_ativo', ['funcionalidadeId', 'acao'], { unique: true, where: '"deletedAt" IS NULL' })`.
   - Coluna `funcionalidadeId` (`uuid`) e `@ManyToOne(() => Funcionalidade, (f) => f.acoes, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'funcionalidadeId' }) funcionalidade!: Funcionalidade;`.
   - Coluna `acao` (`varchar`, length `100`).
-- [ ] 2.5 Evoluir a entidade `Perfil` em `apps/backend/src/perfis/entities/perfil.entity.ts`:
+- [x] 2.5 Evoluir a entidade `Perfil` em `apps/backend/src/perfis/entities/perfil.entity.ts`:
   - Remover a coluna `roles` (`simple-json`).
   - Adicionar relação `@ManyToMany(() => FuncionalidadeAcao)` com `@JoinTable({ name: 'perfis_funcionalidades_acoes', joinColumn: { name: 'perfil_id', referencedColumnName: 'id' }, inverseJoinColumn: { name: 'funcionalidade_acao_id', referencedColumnName: 'id' } }) acoes!: FuncionalidadeAcao[];`.
   - Adicionar getter/propriedade virtual ou helper para expor `acaoIds`, `funcionalidades` e `roles` quando `acoes` estiver carregada.
-- [ ] 2.6 Criar/atualizar Migration TypeORM e testes de migration:
+- [x] 2.6 Criar/atualizar Migration TypeORM e testes de migration:
   - Criar migration `apps/backend/src/migrations/1710000000001-CreateFuncionalidadesAndAcoes.ts` que cria as tabelas `funcionalidades`, `funcionalidades_acoes` (com seus respectivos índices únicos parciais `WHERE "deletedAt" IS NULL`), cria a tabela pivô `perfis_funcionalidades_acoes` e remove a coluna `roles` de `perfis`.
   - Registrar `Funcionalidade` e `FuncionalidadeAcao` no `data-source.ts`, `database.module.ts`, `perfis.module.ts` e nos módulos de teste.
   - Atualizar `apps/backend/src/database/migrations.integration.spec.ts` para verificar a criação das tabelas `funcionalidades`, `funcionalidades_acoes`, `perfis_funcionalidades_acoes` e os índices parciais.
-- [ ] 2.7 **Checkpoint da Fase 2**: Executar `pnpm --filter backend test src/auth/permissions/roles-catalog.spec.ts src/database/migrations.integration.spec.ts` e garantir 100% de aprovação.
+- [x] 2.7 **Checkpoint da Fase 2**: Executar `pnpm --filter backend test src/auth/permissions/roles-catalog.spec.ts src/database/migrations.integration.spec.ts` e garantir 100% de aprovação.
 
 ---
 
@@ -210,4 +210,5 @@
 ## Observações de Execução
 
 - **Fase 1 Concluída**: Padronizado `SENSITIVE_DATA_ROLE` para `'global:dados-sensiveis'` em `@repo/utils`, criado contrato de roles em `packages/utils/src/contracts/roles.ts` (`FuncionalidadeAcaoDto`, `FuncionalidadeGroupDto`, `RolesSyncResultDto`) e exportado no pacote. Testes e build de `@repo/utils` 100% verdes.
+- **Fase 2 Concluída**: Validação de roles simplificada via `ROLE_FORMAT` em `RolesCatalog`; criadas entidades `Funcionalidade`, `FuncionalidadeAcao` e relação `@ManyToMany` em `Perfil` com tabela pivô `perfis_funcionalidades_acoes` e remoção da coluna `roles`; criada migration `1793200000000-CreateFuncionalidadesAndAcoes.ts` com índices únicos parciais (`deletedAt IS NULL`); testes de migration e roles catalog 100% verdes.
 

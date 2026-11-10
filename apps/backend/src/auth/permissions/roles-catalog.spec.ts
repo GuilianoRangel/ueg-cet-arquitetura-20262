@@ -21,8 +21,10 @@ describe('RolesCatalog', () => {
     expect(() => RolesCatalog.register(':read')).toThrow();
   });
 
-  it('RolesCatalog.register should accept DADOS_SENSIVEIS', () => {
+  it('RolesCatalog.register should accept global:dados-sensiveis and perfis:sync directly via ROLE_FORMAT', () => {
     expect(() => RolesCatalog.register(SENSITIVE_DATA_ROLE)).not.toThrow();
-    expect(RolesCatalog.all()).toContain(SENSITIVE_DATA_ROLE);
+    expect(RolesCatalog.all()).toContain('global:dados-sensiveis');
+    expect(() => RolesCatalog.register('perfis:sync')).not.toThrow();
+    expect(RolesCatalog.all()).toContain('perfis:sync');
   });
 });
