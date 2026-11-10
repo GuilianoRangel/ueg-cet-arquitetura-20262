@@ -6,11 +6,12 @@ import { FuncionalidadeAcao } from './entities/funcionalidade-acao.entity';
 import { PerfisService } from './perfis.service';
 import { PerfisController } from './perfis.controller';
 import { RolesCatalogController } from './roles-catalog.controller';
+import { RolesSyncService } from './roles-sync.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Perfil, Funcionalidade, FuncionalidadeAcao])],
   controllers: [PerfisController, RolesCatalogController],
-  providers: [PerfisService],
-  exports: [PerfisService],
+  providers: [PerfisService, RolesSyncService],
+  exports: [PerfisService, RolesSyncService],
 })
 export class PerfisModule {}

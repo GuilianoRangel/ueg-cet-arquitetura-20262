@@ -25,7 +25,7 @@ export class PermissionsService {
 
     const user = await this.dataSource.getRepository(User).findOne({
       where: { id: userId },
-      relations: ['perfis'],
+      relations: ['perfis', 'perfis.acoes', 'perfis.acoes.funcionalidade'],
     });
 
     if (!user || !user.ativo || user.deletedAt) {
@@ -42,10 +42,17 @@ export class PermissionsService {
 
     if (user.perfis) {
       for (const perfil of user.perfis) {
-        if (perfil.ativo && !perfil.deletedAt && Array.isArray(perfil.roles)) {
-          for (const role of perfil.roles) {
-            if (catalogRoles.has(role)) {
-              effective.add(role);
+        if (perfil.ativo && !perfil.deletedAt && Array.isArray(perfil.acoes)) {
+          for (const acao of perfil.acoes) {
+            if (
+              !acao.deletedAt &&
+              acao.funcionalidade &&
+              !acao.funcionalidade.deletedAt
+            ) {
+              const role = `${acao.funcionalidade.nome}:${acao.acao}`;
+              if (catalogRoles.has(role)) {
+                effective.add(role);
+              }
             }
           }
         }

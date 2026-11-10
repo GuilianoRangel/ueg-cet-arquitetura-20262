@@ -6,6 +6,28 @@ import {
 import { RolesCatalog } from './roles-catalog';
 import { User } from '../../users/entities/user.entity';
 import { Perfil } from '../../perfis/entities/perfil.entity';
+import { Funcionalidade } from '../../perfis/entities/funcionalidade.entity';
+import { FuncionalidadeAcao } from '../../perfis/entities/funcionalidade-acao.entity';
+
+function createMockAcao(
+  id: string,
+  funcNome: string,
+  acaoNome: string,
+  softDeleted = false,
+  funcSoftDeleted = false,
+): FuncionalidadeAcao {
+  return {
+    id,
+    funcionalidadeId: `f-${funcNome}`,
+    acao: acaoNome,
+    deletedAt: softDeleted ? new Date() : null,
+    funcionalidade: {
+      id: `f-${funcNome}`,
+      nome: funcNome,
+      deletedAt: funcSoftDeleted ? new Date() : null,
+    } as Funcionalidade,
+  } as FuncionalidadeAcao;
+}
 
 describe('PermissionsService', () => {
   let service: PermissionsService;
@@ -45,14 +67,17 @@ describe('PermissionsService', () => {
           nome: 'P1',
           ativo: true,
           deletedAt: null,
-          roles: ['users:read'],
+          acoes: [createMockAcao('a1', 'users', 'read')],
         } as Perfil,
         {
           id: 'p2',
           nome: 'P2',
           ativo: true,
           deletedAt: null,
-          roles: ['users:create', 'categorias:read'],
+          acoes: [
+            createMockAcao('a2', 'users', 'create'),
+            createMockAcao('a3', 'categorias', 'read'),
+          ],
         } as Perfil,
       ],
     };
@@ -62,6 +87,10 @@ describe('PermissionsService', () => {
     expect(roles).toEqual(
       new Set(['users:read', 'users:create', 'categorias:read']),
     );
+    expect(userRepoMock.findOne).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      relations: ['perfis', 'perfis.acoes', 'perfis.acoes.funcionalidade'],
+    });
   });
 
   it('should ignore inactive perfis', async () => {
@@ -75,21 +104,46 @@ describe('PermissionsService', () => {
           nome: 'P1',
           ativo: true,
           deletedAt: null,
-          roles: ['users:read'],
+          acoes: [createMockAcao('a1', 'users', 'read')],
         } as Perfil,
         {
           id: 'p2',
           nome: 'P2',
           ativo: false,
           deletedAt: null,
-          roles: ['users:create'],
+          acoes: [createMockAcao('a2', 'users', 'create')],
         } as Perfil,
         {
           id: 'p3',
           nome: 'P3',
           ativo: true,
           deletedAt: new Date(),
-          roles: ['categorias:read'],
+          acoes: [createMockAcao('a3', 'categorias', 'read')],
+        } as Perfil,
+      ],
+    };
+    (userRepoMock.findOne as jest.Mock).mockResolvedValue(user);
+
+    const roles = await service.getEffectiveRoles('u1');
+    expect(roles).toEqual(new Set(['users:read']));
+  });
+
+  it('should ignore soft-deleted acoes or acoes with soft-deleted funcionalidade', async () => {
+    const user: Partial<User> = {
+      id: 'u1',
+      ativo: true,
+      deletedAt: null,
+      perfis: [
+        {
+          id: 'p1',
+          nome: 'P1',
+          ativo: true,
+          deletedAt: null,
+          acoes: [
+            createMockAcao('a1', 'users', 'read'),
+            createMockAcao('a2', 'users', 'create', true), // acao soft-deleted
+            createMockAcao('a3', 'categorias', 'read', false, true), // funcionalidade soft-deleted
+          ],
         } as Perfil,
       ],
     };
@@ -110,7 +164,7 @@ describe('PermissionsService', () => {
           nome: 'P1',
           ativo: true,
           deletedAt: null,
-          roles: ['users:read'],
+          acoes: [createMockAcao('a1', 'users', 'read')],
         } as Perfil,
       ],
     };
@@ -131,7 +185,7 @@ describe('PermissionsService', () => {
           nome: 'P1',
           ativo: true,
           deletedAt: null,
-          roles: ['users:read'],
+          acoes: [createMockAcao('a1', 'users', 'read')],
         } as Perfil,
       ],
     };
@@ -165,7 +219,10 @@ describe('PermissionsService', () => {
           nome: 'P1',
           ativo: true,
           deletedAt: null,
-          roles: ['users:read', 'obsolete:role'],
+          acoes: [
+            createMockAcao('a1', 'users', 'read'),
+            createMockAcao('a2', 'obsolete', 'role'),
+          ],
         } as Perfil,
       ],
     };
@@ -187,7 +244,7 @@ describe('PermissionsService', () => {
           nome: 'P1',
           ativo: true,
           deletedAt: null,
-          roles: ['users:read'],
+          acoes: [createMockAcao('a1', 'users', 'read')],
         } as Perfil,
       ],
     };
@@ -214,7 +271,7 @@ describe('PermissionsService', () => {
           nome: 'P1',
           ativo: true,
           deletedAt: null,
-          roles: ['users:read'],
+          acoes: [createMockAcao('a1', 'users', 'read')],
         } as Perfil,
       ],
     };

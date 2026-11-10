@@ -6,13 +6,14 @@ import { Perfil } from '../../perfis/entities/perfil.entity';
 import { User } from '../../users/entities/user.entity';
 import { TransactionRunner } from '../../common/crud/transaction-runner';
 import { PermissionsService } from '../../auth/permissions/permissions.service';
-import { RolesCatalog } from '../../auth/permissions/roles-catalog';
+import { RolesSyncService } from '../../perfis/roles-sync.service';
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeedService.name);
 
   constructor(
+    private readonly rolesSyncService: RolesSyncService,
     private readonly transactionRunner: TransactionRunner,
     private readonly permissionsService: PermissionsService,
     private readonly configService: ConfigService,
@@ -36,54 +37,22 @@ export class SeedService implements OnApplicationBootstrap {
     const adminEmail =
       this.configService.get<string>('ADMIN_EMAIL') || 'admin@ueg.br';
 
+    // 1. Sincronizar catálogo de roles com o banco e perfil Administrador
+    await this.rolesSyncService.sync();
+
+    // 2. Garantir usuário administrador vinculado ao perfil
     await this.transactionRunner.runInTransaction(async (manager) => {
-      // 1. Perfil "Administrador"
       const perfilRepo = manager.getRepository(Perfil);
-      let adminPerfil = await perfilRepo.findOne({
+      const adminPerfil = await perfilRepo.findOne({
         where: { nome: ADMIN_PERFIL_NOME },
       });
 
-      const catalogRoles = RolesCatalog.all();
-
-      let rolesUpdated = false;
-
       if (!adminPerfil) {
-        adminPerfil = perfilRepo.create({
-          nome: ADMIN_PERFIL_NOME,
-          ativo: true,
-          sistema: true,
-          roles: catalogRoles,
-          ultimoUsuarioId: null,
-        });
-        adminPerfil = await perfilRepo.save(adminPerfil);
-        rolesUpdated = true;
-        this.logger.log(`Perfil "${ADMIN_PERFIL_NOME}" criado com sucesso.`);
-      } else {
-        const currentRoles = Array.isArray(adminPerfil.roles)
-          ? adminPerfil.roles
-          : [];
-        const currentSorted = [...currentRoles].sort();
-        const targetSorted = [...catalogRoles].sort();
-
-        const isDifferent =
-          currentSorted.length !== targetSorted.length ||
-          currentSorted.some((val, idx) => val !== targetSorted[idx]);
-
-        if (isDifferent) {
-          adminPerfil.roles = catalogRoles;
-          await perfilRepo.save(adminPerfil);
-          rolesUpdated = true;
-          this.logger.log(
-            `Roles do perfil "${ADMIN_PERFIL_NOME}" sincronizadas.`,
-          );
-        }
+        throw new Error(
+          `Perfil "${ADMIN_PERFIL_NOME}" não encontrado após sincronização de roles.`,
+        );
       }
 
-      if (rolesUpdated) {
-        this.permissionsService.invalidateAll();
-      }
-
-      // 2. Usuário admin
       const userRepo = manager.getRepository(User);
       const existingUser = await userRepo.findOne({
         where: { email: adminEmail },

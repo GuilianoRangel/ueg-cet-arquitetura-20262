@@ -83,12 +83,12 @@
 > - Ler: `specs/perfis-funcionalidades-roles.md` (Seções 4 e 5.4), `apps/backend/src/database/seed/seed.service.ts`, `apps/backend/src/auth/permissions/permissions.service.ts`.
 > - Skills ativas: `execute-plan`, `nestjs-best-practices`, `nestjs-testing-expert`, `clean-code`.
 
-- [ ] 3.1 **Testes** para `RolesSyncService` e `SeedService` em `apps/backend/src/database/seed/seed.service.spec.ts`:
+- [x] 3.1 **Testes** para `RolesSyncService` e `SeedService` em `apps/backend/src/database/seed/seed.service.spec.ts`:
   - `should populate funcionalidades and funcionalidades_acoes from RolesCatalog and link all active actions to Administrador perfil`
   - `should soft-delete FuncionalidadeAcao (and Funcionalidade when empty) when a role is removed from RolesCatalog`
   - `should create a brand new UUID when a previously soft-deleted action is re-added to RolesCatalog (never restoring old ID)`
   - `should automatically link newly synced actions to Administrador perfil and invalidate permissions cache`
-- [ ] 3.2 Criar `RolesSyncService` em `apps/backend/src/auth/permissions/roles-sync.service.ts` (ou `apps/backend/src/perfis/roles-sync.service.ts`) e integrá-lo ao `SeedService`:
+- [x] 3.2 Criar `RolesSyncService` em `apps/backend/src/auth/permissions/roles-sync.service.ts` (ou `apps/backend/src/perfis/roles-sync.service.ts`) e integrá-lo ao `SeedService`:
   - Implementar `sync(): Promise<RolesSyncResultDto>` dentro de `TransactionRunner.runInTransaction`:
     1. Extrair pares `(funcionalidade, acao)` de `RolesCatalog.all()`.
     2. Fazer `softRemove` nas `FuncionalidadeAcao` ativas que não estão mais no catálogo.
@@ -98,13 +98,13 @@
     6. Criar ou atualizar o perfil `Administrador` (`sistema: true`, `ativo: true`) vinculando todas as `FuncionalidadeAcao` ativas.
     7. Se houve alteração, chamar `this.permissionsService.invalidateAll()`.
   - Atualizar `SeedService` para delegar a sincronização de roles e do perfil `Administrador` ao `RolesSyncService` antes de garantir a criação do usuário admin.
-- [ ] 3.3 **Testes** em `apps/backend/src/auth/permissions/permissions.service.spec.ts`:
+- [x] 3.3 **Testes** em `apps/backend/src/auth/permissions/permissions.service.spec.ts`:
   - Atualizar os testes para montar `Perfil` com `acoes: FuncionalidadeAcao[]` e `funcionalidade: Funcionalidade`.
   - Adicionar teste garantindo que ações com `deletedAt !== null` ou funcionalidades com `deletedAt !== null` são ignoradas em `getEffectiveRoles`.
-- [ ] 3.4 Atualizar `apps/backend/src/auth/permissions/permissions.service.ts`:
+- [x] 3.4 Atualizar `apps/backend/src/auth/permissions/permissions.service.ts`:
   - Carregar `relations: ['perfis', 'perfis.acoes', 'perfis.acoes.funcionalidade']`.
   - Construir o conjunto de roles efetivas (`${acao.funcionalidade.nome}:${acao.acao}`) apenas quando `perfil.ativo && !perfil.deletedAt && !acao.deletedAt && acao.funcionalidade && !acao.funcionalidade.deletedAt`.
-- [ ] 3.5 **Checkpoint da Fase 3**: Executar `pnpm --filter backend test src/database/seed/seed.service.spec.ts src/auth/permissions/permissions.service.spec.ts` e garantir 100% de aprovação.
+- [x] 3.5 **Checkpoint da Fase 3**: Executar `pnpm --filter backend test src/database/seed/seed.service.spec.ts src/auth/permissions/permissions.service.spec.ts` e garantir 100% de aprovação.
 
 ---
 
@@ -211,4 +211,5 @@
 
 - **Fase 1 Concluída**: Padronizado `SENSITIVE_DATA_ROLE` para `'global:dados-sensiveis'` em `@repo/utils`, criado contrato de roles em `packages/utils/src/contracts/roles.ts` (`FuncionalidadeAcaoDto`, `FuncionalidadeGroupDto`, `RolesSyncResultDto`) e exportado no pacote. Testes e build de `@repo/utils` 100% verdes.
 - **Fase 2 Concluída**: Validação de roles simplificada via `ROLE_FORMAT` em `RolesCatalog`; criadas entidades `Funcionalidade`, `FuncionalidadeAcao` e relação `@ManyToMany` em `Perfil` com tabela pivô `perfis_funcionalidades_acoes` e remoção da coluna `roles`; criada migration `1793200000000-CreateFuncionalidadesAndAcoes.ts` com índices únicos parciais (`deletedAt IS NULL`); testes de migration e roles catalog 100% verdes.
+- **Fase 3 Concluída**: Criado `RolesSyncService` com suporte a sincronização atômica (adição de novas funcionalidades/ações gerando novos UUIDs, soft delete de obsoletas e de funcionalidades vazias, auto-associação de todas as ações ativas ao perfil `Administrador` e invalidação de cache); `SeedService` integrado ao `RolesSyncService`; `PermissionsService` atualizado para carregar relações `acoes.funcionalidade` ignorando registros deletados; testes de seed e permissions 100% verdes.
 

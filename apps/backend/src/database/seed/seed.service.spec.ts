@@ -11,6 +11,7 @@ import { Categoria } from '../../categorias/entities/categoria.entity';
 import { TransactionRunner } from '../../common/crud/transaction-runner';
 import { PermissionsService } from '../../auth/permissions/permissions.service';
 import { RolesCatalog } from '../../auth/permissions/roles-catalog';
+import { RolesSyncService } from '../../perfis/roles-sync.service';
 import { ADMIN_PERFIL_NOME, SENSITIVE_DATA_ROLE } from '@repo/utils';
 
 describe('SeedService', () => {
@@ -57,12 +58,138 @@ describe('SeedService', () => {
       get: jest.fn((key: string) => envConfig[key]),
     } as unknown as ConfigService;
 
+    const rolesSyncService = new RolesSyncService(
+      transactionRunner,
+      permissionsServiceMock as PermissionsService,
+    );
+
     return new SeedService(
+      rolesSyncService,
       transactionRunner,
       permissionsServiceMock as PermissionsService,
       configService,
     );
   };
+
+  it('should populate funcionalidades and funcionalidades_acoes from RolesCatalog and link all active actions to Administrador perfil', async () => {
+    const service = createService();
+    await service.onApplicationBootstrap();
+
+    const funcRepo = dataSource.getRepository(Funcionalidade);
+    const acaoRepo = dataSource.getRepository(FuncionalidadeAcao);
+    const perfilRepo = dataSource.getRepository(Perfil);
+
+    const funcionalidades = await funcRepo.find();
+    const acoes = await acaoRepo.find({ relations: ['funcionalidade'] });
+    const adminPerfil = await perfilRepo.findOne({
+      where: { nome: ADMIN_PERFIL_NOME },
+      relations: ['acoes', 'acoes.funcionalidade'],
+    });
+
+    expect(funcionalidades.map((f) => f.nome).sort()).toEqual(
+      ['categorias', 'global', 'users'].sort(),
+    );
+    expect(acoes.map((a) => `${a.funcionalidade.nome}:${a.acao}`).sort()).toEqual(
+      ['users:read', 'users:create', 'categorias:read', SENSITIVE_DATA_ROLE].sort(),
+    );
+    expect(adminPerfil).toBeDefined();
+    expect(adminPerfil?.sistema).toBe(true);
+    expect(adminPerfil?.acoes.length).toBe(4);
+    expect(adminPerfil?.roles.sort()).toEqual(
+      ['users:read', 'users:create', 'categorias:read', SENSITIVE_DATA_ROLE].sort(),
+    );
+  });
+
+  it('should soft-delete FuncionalidadeAcao (and Funcionalidade when empty) when a role is removed from RolesCatalog', async () => {
+    const service = createService();
+    await service.onApplicationBootstrap();
+
+    // Remove categorias:read and users:create from catalog
+    RolesCatalog.clearForTests();
+    RolesCatalog.register('users:read');
+    await service.onApplicationBootstrap();
+
+    const funcRepo = dataSource.getRepository(Funcionalidade);
+    const acaoRepo = dataSource.getRepository(FuncionalidadeAcao);
+
+    const activeAcoes = await acaoRepo.find({
+      relations: ['funcionalidade'],
+      withDeleted: false,
+    });
+    expect(activeAcoes.map((a) => `${a.funcionalidade.nome}:${a.acao}`)).toEqual([
+      'users:read',
+    ]);
+
+    // Check soft-deleted acoes exist with deletedAt
+    const deletedAcoes = await acaoRepo.find({
+      withDeleted: true,
+    });
+    const softDeleted = deletedAcoes.filter((a) => a.deletedAt !== null);
+    expect(softDeleted.length).toBe(3);
+
+    // Funcionalidade "categorias" should be soft-deleted because it has no active actions
+    const categoriasFunc = await funcRepo.findOne({
+      where: { nome: 'categorias' },
+      withDeleted: true,
+    });
+    expect(categoriasFunc?.deletedAt).not.toBeNull();
+
+    // Funcionalidade "users" should still be active
+    const usersFunc = await funcRepo.findOne({
+      where: { nome: 'users' },
+      withDeleted: false,
+    });
+    expect(usersFunc).toBeDefined();
+    expect(usersFunc?.deletedAt).toBeNull();
+  });
+
+  it('should create a brand new UUID when a previously soft-deleted action is re-added to RolesCatalog (never restoring old ID)', async () => {
+    const service = createService();
+    await service.onApplicationBootstrap();
+
+    const acaoRepo = dataSource.getRepository(FuncionalidadeAcao);
+    const initialCategoriasRead = await acaoRepo.findOne({
+      where: { acao: 'read', funcionalidade: { nome: 'categorias' } },
+      relations: ['funcionalidade'],
+    });
+    const oldId = initialCategoriasRead!.id;
+
+    // Remove it
+    RolesCatalog.clearForTests();
+    RolesCatalog.register('users:read');
+    await service.onApplicationBootstrap();
+
+    // Re-add it
+    RolesCatalog.register('categorias:read');
+    await service.onApplicationBootstrap();
+
+    const activeCategoriasRead = await acaoRepo.findOne({
+      where: { acao: 'read', funcionalidade: { nome: 'categorias' } },
+      relations: ['funcionalidade'],
+    });
+    expect(activeCategoriasRead).toBeDefined();
+    expect(activeCategoriasRead?.id).not.toBe(oldId);
+  });
+
+  it('should automatically link newly synced actions to Administrador perfil and invalidate permissions cache', async () => {
+    const service = createService();
+    await service.onApplicationBootstrap();
+
+    (permissionsServiceMock.invalidateAll as jest.Mock).mockClear();
+
+    // Add new role to catalog
+    RolesCatalog.register('perfis:sync');
+    await service.onApplicationBootstrap();
+
+    const perfilRepo = dataSource.getRepository(Perfil);
+    const adminPerfil = await perfilRepo.findOne({
+      where: { nome: ADMIN_PERFIL_NOME },
+      relations: ['acoes', 'acoes.funcionalidade'],
+    });
+
+    expect(adminPerfil?.roles).toContain('perfis:sync');
+    expect(permissionsServiceMock.invalidateAll).toHaveBeenCalled();
+  });
 
   it('should create perfil Administrador with sistema=true and all catalog roles including DADOS_SENSIVEIS', async () => {
     const service = createService();
@@ -71,6 +198,7 @@ describe('SeedService', () => {
     const perfilRepo = dataSource.getRepository(Perfil);
     const adminPerfil = await perfilRepo.findOne({
       where: { nome: ADMIN_PERFIL_NOME },
+      relations: ['acoes', 'acoes.funcionalidade'],
     });
 
     expect(adminPerfil).toBeDefined();
@@ -130,6 +258,7 @@ describe('SeedService', () => {
     const perfilRepo = dataSource.getRepository(Perfil);
     const adminPerfil = await perfilRepo.findOne({
       where: { nome: ADMIN_PERFIL_NOME },
+      relations: ['acoes', 'acoes.funcionalidade'],
     });
 
     expect(adminPerfil?.roles).toContain('categorias:create');
