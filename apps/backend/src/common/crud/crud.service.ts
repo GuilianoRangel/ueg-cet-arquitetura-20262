@@ -572,8 +572,22 @@ export abstract class CrudService<
       const qb = repo.createQueryBuilder(alias);
 
       if (this.config.relations) {
+        const joinedAliases = new Set<string>();
         for (const rel of this.config.relations) {
-          qb.leftJoinAndSelect(`${alias}.${rel}`, rel);
+          const parts = rel.split('.');
+          let currentParentAlias = alias;
+          let currentPath = '';
+
+          for (const part of parts) {
+            currentPath = currentPath ? `${currentPath}.${part}` : part;
+            const joinAlias = currentPath.replace(/\./g, '_');
+
+            if (!joinedAliases.has(currentPath)) {
+              qb.leftJoinAndSelect(`${currentParentAlias}.${part}`, joinAlias);
+              joinedAliases.add(currentPath);
+            }
+            currentParentAlias = joinAlias;
+          }
         }
       }
 

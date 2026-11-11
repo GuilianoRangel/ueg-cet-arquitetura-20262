@@ -162,3 +162,4 @@ export class PerfilFormModalComponent implements OnInit {
     this.dialogRef.close(undefined);
   }
 }
+

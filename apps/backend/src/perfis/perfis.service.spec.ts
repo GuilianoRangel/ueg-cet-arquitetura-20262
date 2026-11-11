@@ -156,6 +156,19 @@ describe('PerfisService', () => {
     );
     expect(found.funcionalidades.sort()).toEqual(['perfis', 'users'].sort());
     expect(found.roles.sort()).toEqual(['perfis:read', 'users:read'].sort());
+
+    const pageResult = await service.findAll({}, defaultUser);
+    expect(pageResult.total).toBe(1);
+    expect(pageResult.items[0].id).toBe(created.id);
+    expect(pageResult.items[0].acaoIds.sort()).toEqual(
+      [acaoUsersRead.id, acaoPerfisRead.id].sort(),
+    );
+    expect(pageResult.items[0].funcionalidades.sort()).toEqual(
+      ['perfis', 'users'].sort(),
+    );
+    expect(pageResult.items[0].roles.sort()).toEqual(
+      ['perfis:read', 'users:read'].sort(),
+    );
   });
 
   it('should throw 409 PERFIL_NOME_EXISTS for duplicated nome among non-deleted (case-insensitive)', async () => {

@@ -191,6 +191,15 @@ describe('CRUD Flow End-to-End Integration', () => {
     const perfilId = perfilBody.id;
     expect(perfilId).toBeDefined();
 
+    // Verify GET /perfis works and returns items with relations
+    const listPerfisRes = await request(server)
+      .get('/perfis')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(
+      (listPerfisRes.body as { items: unknown[] }).items.length,
+    ).toBeGreaterThanOrEqual(2);
+
     // Create user with that perfil
     const userRes = await request(server)
       .post('/users')
