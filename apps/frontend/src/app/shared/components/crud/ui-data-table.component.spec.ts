@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { PageResult } from '@repo/utils';
+import { PageResult, SENSITIVE_DATA_ROLE } from '@repo/utils';
 import { AuthService } from '../../../core/auth/auth.service';
 import { GenericCrudService } from '../../../core/crud/generic-crud.service';
 import { CrudTableDataSource } from './crud-table-data-source';
@@ -35,7 +35,7 @@ describe('UiDataTableComponent', () => {
 
     authServiceMock = {
       hasRole: vi.fn((role: string) =>
-        ['categorias:update', 'categorias:delete', 'DADOS_SENSIVEIS'].includes(
+        ['categorias:update', 'categorias:delete', SENSITIVE_DATA_ROLE].includes(
           role,
         ),
       ),
@@ -69,7 +69,7 @@ describe('UiDataTableComponent', () => {
           label: 'Valor',
           sortable: true,
           type: 'currency-cents',
-          requiredRole: 'DADOS_SENSIVEIS',
+          requiredRole: SENSITIVE_DATA_ROLE,
           maskedSentinel: 99999,
         },
         {

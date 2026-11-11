@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  Type,
   computed,
   inject,
   input,
@@ -30,6 +31,14 @@ import { SmartFilterBarComponent } from './smart-filter-bar.component';
 import { UiDataTableComponent } from './ui-data-table.component';
 import { UiPaginatorComponent } from './ui-paginator.component';
 
+export interface CrudPageHeaderAction {
+  id: string;
+  label: string;
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  permission?: string;
+  handler: () => void;
+}
+
 export interface CrudPageConfig<
   E extends { id: string; version?: number } = { id: string; version?: number },
 > {
@@ -40,6 +49,9 @@ export interface CrudPageConfig<
   service: GenericCrudService<E>;
   columns: TableColumnDef<E>[];
   extraRowActions?: TableRowAction<E>[];
+  headerActions?: CrudPageHeaderAction[];
+  customModalComponent?: Type<unknown>;
+  isRowReadOnly?: (row: E) => boolean;
   canEditRow?: (row: E) => boolean;
   canDeleteRow?: (row: E) => boolean;
   disabledRowTooltip?: string;
@@ -91,6 +103,14 @@ export class GenericCrudPageComponent<
     return `${isFeminine ? 'Nova' : 'Novo'} ${label}`;
   });
 
+  readonly visibleHeaderActions = computed(() => {
+    const actions = this.config()?.headerActions ?? [];
+    return actions.filter(
+      (action) =>
+        !action.permission || this.authService.hasRole(action.permission),
+    );
+  });
+
   ngOnInit(): void {
     const cfg = this.config();
     if (cfg) {
@@ -106,7 +126,14 @@ export class GenericCrudPageComponent<
         label: 'Editar',
         variant: 'outline',
         permission: `${cfg.resource}:update`,
-        disabled: cfg.canEditRow ? (row) => !cfg.canEditRow!(row) : undefined,
+        disabled: cfg.canEditRow
+          ? (row) => {
+              if (cfg.isRowReadOnly && cfg.isRowReadOnly(row)) {
+                return false;
+              }
+              return !cfg.canEditRow!(row);
+            }
+          : undefined,
         disabledTooltip:
           cfg.disabledRowTooltip || 'Este registro não pode ser editado',
         handler: (row) => this.openEditModal(row),
@@ -153,8 +180,32 @@ export class GenericCrudPageComponent<
   }
 
   openCreateModal(): void {
-    const currentMeta = this.meta();
     const cfg = this.config();
+    if (cfg.customModalComponent) {
+      const ref = this.dialogService.open<boolean, Record<string, unknown>>(
+        cfg.customModalComponent,
+        {
+          width: '720px',
+          data: {
+            mode: 'create',
+            initialData: null,
+            readOnly: false,
+            entityLabel: cfg.entityLabel,
+            service: cfg.service,
+          },
+        },
+      );
+
+      ref.closed.subscribe((saved) => {
+        if (saved) {
+          this.toastService.success(`${cfg.entityLabel} criado(a) com sucesso!`);
+          this.refreshTable();
+        }
+      });
+      return;
+    }
+
+    const currentMeta = this.meta();
     if (!currentMeta) {
       return;
     }
@@ -182,14 +233,42 @@ export class GenericCrudPageComponent<
   }
 
   openEditModal(row: E): void {
-    const currentMeta = this.meta();
     const cfg = this.config();
-    if (!currentMeta) {
-      return;
-    }
+    const isReadOnly = cfg.isRowReadOnly ? cfg.isRowReadOnly(row) : false;
 
     cfg.service.findOne(row.id).subscribe({
       next: (freshEntity) => {
+        if (cfg.customModalComponent) {
+          const ref = this.dialogService.open<boolean, Record<string, unknown>>(
+            cfg.customModalComponent,
+            {
+              width: '720px',
+              data: {
+                mode: 'edit',
+                initialData: freshEntity,
+                readOnly: isReadOnly,
+                entityLabel: cfg.entityLabel,
+                service: cfg.service,
+              },
+            },
+          );
+
+          ref.closed.subscribe((saved) => {
+            if (saved) {
+              this.toastService.success(
+                `${cfg.entityLabel} atualizado(a) com sucesso!`,
+              );
+              this.refreshTable();
+            }
+          });
+          return;
+        }
+
+        const currentMeta = this.meta();
+        if (!currentMeta) {
+          return;
+        }
+
         const ref = this.dialogService.open<boolean, GenericCrudFormModalData>(
           GenericCrudFormModalComponent,
           {

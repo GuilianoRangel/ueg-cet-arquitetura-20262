@@ -5,7 +5,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { CrudFormSchemaDto } from '@repo/utils';
+import { CrudFormSchemaDto, SENSITIVE_DATA_ROLE } from '@repo/utils';
 import { GenericCrudFormComponent } from './generic-crud-form.component';
 
 describe('GenericCrudFormComponent', () => {
@@ -262,7 +262,7 @@ describe('GenericCrudFormComponent', () => {
           readOnly: true,
           masked: true,
           omitOnSubmit: true,
-          requiredRole: 'DADOS_SENSIVEIS',
+          requiredRole: SENSITIVE_DATA_ROLE,
           validations: [],
         },
       ],

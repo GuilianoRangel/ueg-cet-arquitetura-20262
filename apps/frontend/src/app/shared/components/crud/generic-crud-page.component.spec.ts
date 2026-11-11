@@ -14,6 +14,8 @@ import {
   GenericCrudPageComponent,
 } from './generic-crud-page.component';
 
+class MockCustomModalComponent {}
+
 interface MockCategoria {
   id: string;
   nome: string;
@@ -308,6 +310,104 @@ describe('GenericCrudPageComponent', () => {
     expect(crudServiceMock.remove).toHaveBeenCalledWith('cat-1', 2);
     expect(toastServiceMock.success).toHaveBeenCalled();
     expect(crudServiceMock.findAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('should render headerActions only when user has the required permission and execute handler on click', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const configWithActions: CrudPageConfig<MockCategoria> = {
+      ...pageConfig,
+      headerActions: [
+        {
+          id: 'sync',
+          label: 'Sincronizar',
+          permission: 'perfis:sync',
+          handler: handler1,
+        },
+        {
+          id: 'secret',
+          label: 'Secret Action',
+          permission: 'admin:secret',
+          handler: handler2,
+        },
+      ],
+    };
+
+    authServiceMock.hasRole.mockImplementation((role: string) =>
+      ['categorias:create', 'perfis:sync'].includes(role),
+    );
+
+    fixture.componentRef.setInput('config', configWithActions);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const syncBtn = host.querySelector(
+      '[data-testid="crud-page-header-action-sync"]',
+    ) as HTMLButtonElement;
+    const secretBtn = host.querySelector(
+      '[data-testid="crud-page-header-action-secret"]',
+    );
+
+    expect(syncBtn).not.toBeNull();
+    expect(secretBtn).toBeNull();
+
+    syncBtn.click();
+    expect(handler1).toHaveBeenCalledTimes(1);
+    expect(handler2).not.toHaveBeenCalled();
+  });
+
+  it('should open customModalComponent when configured instead of GenericCrudFormModalComponent', () => {
+    const configWithCustomModal: CrudPageConfig<MockCategoria> = {
+      ...pageConfig,
+      customModalComponent: MockCustomModalComponent,
+    };
+
+    fixture.componentRef.setInput('config', configWithCustomModal);
+    fixture.detectChanges();
+
+    component.openCreateModal();
+    expect(dialogServiceMock.open).toHaveBeenCalledWith(
+      MockCustomModalComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          mode: 'create',
+          initialData: null,
+          readOnly: false,
+          entityLabel: 'Categoria',
+        }),
+      }),
+    );
+  });
+
+  it('should keep Editar button enabled when isRowReadOnly(row) is true and pass readOnly: true to modal data', () => {
+    const configWithReadOnly: CrudPageConfig<MockCategoria> = {
+      ...pageConfig,
+      customModalComponent: MockCustomModalComponent,
+      isRowReadOnly: (row: MockCategoria) => row.id === 'cat-1',
+    };
+
+    fixture.componentRef.setInput('config', configWithReadOnly);
+    fixture.detectChanges();
+
+    const row = component.dataSource().items()[0];
+    const actions = component.dataSource().actions();
+    const editAction = actions.find((a) => a.id === 'edit');
+    expect(editAction).toBeDefined();
+    expect(editAction?.disabled ? editAction.disabled(row) : false).toBe(false);
+
+    component.openEditModal(row);
+    expect(crudServiceMock.findOne).toHaveBeenCalledWith('cat-1');
+    expect(dialogServiceMock.open).toHaveBeenCalledWith(
+      MockCustomModalComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          mode: 'edit',
+          initialData: expect.objectContaining({ id: 'cat-1' }),
+          readOnly: true,
+          entityLabel: 'Categoria',
+        }),
+      }),
+    );
   });
 });
 

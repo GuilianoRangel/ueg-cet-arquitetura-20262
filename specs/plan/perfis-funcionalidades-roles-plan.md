@@ -141,11 +141,11 @@
 > - Ler: `specs/perfis-funcionalidades-roles.md` (Seção 6.1), `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.ts`, `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.html`, `apps/frontend/src/app/pages/categorias/categorias-page.component.ts`.
 > - Skills ativas: `execute-plan`, `angular-dev`, `angular-testing`, `clean-code`.
 
-- [ ] 5.1 **Testes** em `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.spec.ts`:
+- [x] 5.1 **Testes** em `apps/frontend/src/app/shared/components/crud/generic-crud-page.component.spec.ts`:
   - `should render headerActions only when user has the required permission and execute handler on click`
   - `should open customModalComponent when configured instead of GenericCrudFormModalComponent`
   - `should keep Editar button enabled when isRowReadOnly(row) is true and pass readOnly: true to modal data`
-- [ ] 5.2 Evoluir `GenericCrudPageComponent` (`generic-crud-page.component.ts` e `generic-crud-page.component.html`):
+- [x] 5.2 Evoluir `GenericCrudPageComponent` (`generic-crud-page.component.ts` e `generic-crud-page.component.html`):
   - Exportar interface `CrudPageHeaderAction` (`id`, `label`, `variant?`, `permission?`, `handler: () => void`).
   - Adicionar em `CrudPageConfig<E>`:
     - `headerActions?: CrudPageHeaderAction[]`
@@ -153,8 +153,8 @@
     - `isRowReadOnly?: (row: E) => boolean`
   - Renderizar os botões de `visibleHeaderActions()` no cabeçalho ao lado do botão de criação.
   - Em `openCreateModal()` e `openEditModal(row)`: se `customModalComponent` estiver definido, abrir `dialogService.open(cfg.customModalComponent, { data: { mode, initialData: row, readOnly: isReadOnly, entityLabel: cfg.entityLabel, service: cfg.service } })`.
-- [ ] 5.3 Atualizar referências de `'DADOS_SENSIVEIS'` para `SENSITIVE_DATA_ROLE` (`'global:dados-sensiveis'`) em `apps/frontend/src/app/pages/categorias/categorias-page.component.ts` e nos testes `categorias-page.component.spec.ts`, `ui-data-table.component.spec.ts` e `generic-crud-form.component.spec.ts`.
-- [ ] 5.4 **Checkpoint da Fase 5**: Executar `pnpm --filter frontend test` e confirmar aprovação dos testes.
+- [x] 5.3 Atualizar referências de `'DADOS_SENSIVEIS'` para `SENSITIVE_DATA_ROLE` (`'global:dados-sensiveis'`) em `apps/frontend/src/app/pages/categorias/categorias-page.component.ts` e nos testes `categorias-page.component.spec.ts`, `ui-data-table.component.spec.ts` e `generic-crud-form.component.spec.ts`.
+- [x] 5.4 **Checkpoint da Fase 5**: Executar `pnpm --filter frontend test` e confirmar aprovação dos testes.
 
 ---
 
@@ -213,4 +213,5 @@
 - **Fase 2 Concluída**: Validação de roles simplificada via `ROLE_FORMAT` em `RolesCatalog`; criadas entidades `Funcionalidade`, `FuncionalidadeAcao` e relação `@ManyToMany` em `Perfil` com tabela pivô `perfis_funcionalidades_acoes` e remoção da coluna `roles`; criada migration `1793200000000-CreateFuncionalidadesAndAcoes.ts` com índices únicos parciais (`deletedAt IS NULL`); testes de migration e roles catalog 100% verdes.
 - **Fase 3 Concluída**: Criado `RolesSyncService` com suporte a sincronização atômica (adição de novas funcionalidades/ações gerando novos UUIDs, soft delete de obsoletas e de funcionalidades vazias, auto-associação de todas as ações ativas ao perfil `Administrador` e invalidação de cache); `SeedService` integrado ao `RolesSyncService`; `PermissionsService` atualizado para carregar relações `acoes.funcionalidade` ignorando registros deletados; testes de seed e permissions 100% verdes.
 - **Fase 4 Concluída**: Implementados endpoints `GET /roles` (agrupamento e ordenação de funcionalidades/ações) e `POST /roles/sync` (`perfis:sync`); DTOs de Perfil refatorados para `acaoIds: string[]` com validação de UUID e integridade semântica em `PerfisService` (`validarAcoesCreate` e `validarAcoesUpdate`), preservação de prototype em `MaskService` e sincronização de relações em `syncRelations`; todas as 27 suítes de teste do backend e o build 100% verdes.
+- **Fase 5 Concluída**: Estendido `GenericCrudPageComponent` com suporte a `headerActions` (filtradas por permissão), `customModalComponent` e modo `readOnly` para edição de registros protegidos sem desabilitar o botão Editar; atualizadas referências legadas de `'DADOS_SENSIVEIS'` para `SENSITIVE_DATA_ROLE` (`'global:dados-sensiveis'`) no frontend; todas as 23 suítes de teste e typecheck do frontend 100% verdes.
 

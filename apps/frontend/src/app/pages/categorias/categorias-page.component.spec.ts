@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of } from 'rxjs';
+import { SENSITIVE_DATA_ROLE } from '@repo/utils';
 import { AuthService } from '../../core/auth/auth.service';
 import { CategoriasService } from './categorias.service';
 import { CategoriasPageComponent } from './categorias-page.component';
@@ -74,7 +75,7 @@ describe('CategoriasPageComponent', () => {
       (c) => c.key === 'valor',
     );
     expect(valorCol?.type).toBe('currency-cents');
-    expect(valorCol?.requiredRole).toBe('DADOS_SENSIVEIS');
+    expect(valorCol?.requiredRole).toBe(SENSITIVE_DATA_ROLE);
     expect(valorCol?.maskedSentinel).toBe(99999);
   });
 });

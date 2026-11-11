@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { SENSITIVE_DATA_ROLE } from '@repo/utils';
 import {
   CrudPageConfig,
   GenericCrudPageComponent,
@@ -34,7 +35,7 @@ export class CategoriasPageComponent {
         label: 'Valor',
         sortable: true,
         type: 'currency-cents',
-        requiredRole: 'DADOS_SENSIVEIS',
+        requiredRole: SENSITIVE_DATA_ROLE,
         maskedSentinel: 99999,
       },
       {

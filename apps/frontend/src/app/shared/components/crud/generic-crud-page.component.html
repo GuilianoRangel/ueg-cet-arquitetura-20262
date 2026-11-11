@@ -11,18 +11,32 @@
         }
       </div>
 
-      @if (canCreate()) {
-        <button
-          type="button"
-          ui-button
-          variant="default"
-          data-testid="crud-page-create-btn"
-          (click)="openCreateModal()"
-          class="gap-2 self-start sm:self-auto"
-        >
-          <span>+ {{ createButtonLabel() }}</span>
-        </button>
-      }
+      <div class="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+        @for (action of visibleHeaderActions(); track action.id) {
+          <button
+            type="button"
+            ui-button
+            [variant]="action.variant ?? 'outline'"
+            [attr.data-testid]="'crud-page-header-action-' + action.id"
+            (click)="action.handler()"
+          >
+            {{ action.label }}
+          </button>
+        }
+
+        @if (canCreate()) {
+          <button
+            type="button"
+            ui-button
+            variant="default"
+            data-testid="crud-page-create-btn"
+            (click)="openCreateModal()"
+            class="gap-2"
+          >
+            <span>+ {{ createButtonLabel() }}</span>
+          </button>
+        }
+      </div>
     </div>
 
     <!-- Barra de Filtros Inteligente -->
