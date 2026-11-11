@@ -11,7 +11,7 @@ export class MaskService {
     ) => unknown;
     const fields = getMaskedFields(constructor);
     const copy = Object.assign(
-      Object.create(Object.getPrototypeOf(entity)),
+      Object.create(Object.getPrototypeOf(entity) as object),
       entity,
     ) as Record<string, unknown>;
 

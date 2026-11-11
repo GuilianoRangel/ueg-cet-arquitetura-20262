@@ -32,7 +32,9 @@ describe('Database Migrations Integration', () => {
     const executedMigrations = await dataSource.runMigrations();
     expect(executedMigrations.length).toBe(2);
     expect(executedMigrations[0].name).toContain('InitialSchema');
-    expect(executedMigrations[1].name).toContain('CreateFuncionalidadesAndAcoes');
+    expect(executedMigrations[1].name).toContain(
+      'CreateFuncionalidadesAndAcoes',
+    );
   });
 
   it('should create tables users, perfis, users_perfis, categorias, funcionalidades, funcionalidades_acoes and perfis_funcionalidades_acoes', async () => {

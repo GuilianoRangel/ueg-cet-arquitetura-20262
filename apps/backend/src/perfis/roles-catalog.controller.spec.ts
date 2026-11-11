@@ -90,7 +90,10 @@ describe('RolesCatalogController', () => {
 
   it('GET /roles should require perfis:read and apply JwtAuthGuard and RolesGuard', () => {
     const reflector = new Reflector();
-    const handler = RolesCatalogController.prototype.getRoles;
+    const handler = Reflect.get(
+      RolesCatalogController.prototype,
+      'getRoles',
+    ) as () => unknown;
 
     const operation = reflector.get<string>(OPERATION_KEY, handler);
     expect(operation).toBe('perfis:read');
@@ -102,7 +105,10 @@ describe('RolesCatalogController', () => {
 
   it('POST /roles/sync should require perfis:sync, apply guards and invoke RolesSyncService.sync()', async () => {
     const reflector = new Reflector();
-    const handler = RolesCatalogController.prototype.syncRoles;
+    const handler = Reflect.get(
+      RolesCatalogController.prototype,
+      'syncRoles',
+    ) as () => unknown;
 
     const operation = reflector.get<string>(OPERATION_KEY, handler);
     expect(operation).toBe('perfis:sync');

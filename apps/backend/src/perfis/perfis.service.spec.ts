@@ -50,7 +50,6 @@ describe('PerfisService', () => {
   let service: PerfisService;
 
   let acaoUsersRead: FuncionalidadeAcao;
-  let acaoUsersCreate: FuncionalidadeAcao;
   let acaoPerfisRead: FuncionalidadeAcao;
   let acaoPerfisCreate: FuncionalidadeAcao;
   let acaoDeleted: FuncionalidadeAcao;
@@ -90,7 +89,7 @@ describe('PerfisService', () => {
     acaoUsersRead = await acaoRepo.save(
       acaoRepo.create({ funcionalidadeId: fUsers.id, acao: 'read' }),
     );
-    acaoUsersCreate = await acaoRepo.save(
+    await acaoRepo.save(
       acaoRepo.create({ funcionalidadeId: fUsers.id, acao: 'create' }),
     );
     acaoPerfisRead = await acaoRepo.save(

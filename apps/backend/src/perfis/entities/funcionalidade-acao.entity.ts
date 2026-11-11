@@ -22,7 +22,8 @@ export class FuncionalidadeAcao extends BaseEntity {
 
   @ApiProperty({
     example: 'create',
-    description: 'Ação permitida para a funcionalidade (ex: create, read, update, delete)',
+    description:
+      'Ação permitida para a funcionalidade (ex: create, read, update, delete)',
   })
   @Column({ type: 'varchar', length: 100 })
   acao!: string;

@@ -9,7 +9,9 @@ import { RolesCatalogController } from './roles-catalog.controller';
 import { RolesSyncService } from './roles-sync.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Perfil, Funcionalidade, FuncionalidadeAcao])],
+  imports: [
+    TypeOrmModule.forFeature([Perfil, Funcionalidade, FuncionalidadeAcao]),
+  ],
   controllers: [PerfisController, RolesCatalogController],
   providers: [PerfisService, RolesSyncService],
   exports: [PerfisService, RolesSyncService],

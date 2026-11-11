@@ -128,4 +128,3 @@ export interface CrudResourceMetaDto {
   createForm: CrudFormSchemaDto;
   updateForm: CrudFormSchemaDto;
 }
-

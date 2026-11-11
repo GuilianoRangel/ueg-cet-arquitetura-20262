@@ -201,9 +201,9 @@
 > - Ler: `specs/perfis-funcionalidades-roles.md`, `specs/arquitetura.md`, `specs/crud-generico.md`.
 > - Skills ativas: `execute-plan`, `clean-code`.
 
-- [ ] 7.1 Verificar ausência total do tipo `any` nos arquivos criados/modificados (`grep -rn ": any\|as any\|<any>" packages/ apps/`).
-- [ ] 7.2 Executar `pnpm test`, `pnpm typecheck`, `pnpm lint` e `pnpm build` na raiz do monorepo, garantindo que todos os pacotes compilam e passam sem erros.
-- [ ] 7.3 Atualizar `specs/arquitetura.md` e `specs/crud-generico.md` documentando as tabelas `funcionalidades`, `funcionalidades_acoes`, `perfis_funcionalidades_acoes`, a role `global:dados-sensiveis`, o endpoint `POST /roles/sync` (`perfis:sync`) e o formulário customizado de Perfis.
+- [x] 7.1 Verificar ausência total do tipo `any` nos arquivos criados/modificados (`grep -rn ": any\|as any\|<any>" packages/ apps/`).
+- [x] 7.2 Executar `pnpm test`, `pnpm typecheck`, `pnpm lint` e `pnpm build` na raiz do monorepo, garantindo que todos os pacotes compilam e passam sem erros.
+- [x] 7.3 Atualizar `specs/arquitetura.md` e `specs/crud-generico.md` documentando as tabelas `funcionalidades`, `funcionalidades_acoes`, `perfis_funcionalidades_acoes`, a role `global:dados-sensiveis`, o endpoint `POST /roles/sync` (`perfis:sync`) e o formulário customizado de Perfis.
 
 ---
 
@@ -215,4 +215,5 @@
 - **Fase 4 Concluída**: Implementados endpoints `GET /roles` (agrupamento e ordenação de funcionalidades/ações) e `POST /roles/sync` (`perfis:sync`); DTOs de Perfil refatorados para `acaoIds: string[]` com validação de UUID e integridade semântica em `PerfisService` (`validarAcoesCreate` e `validarAcoesUpdate`), preservação de prototype em `MaskService` e sincronização de relações em `syncRelations`; todas as 27 suítes de teste do backend e o build 100% verdes.
 - **Fase 5 Concluída**: Estendido `GenericCrudPageComponent` com suporte a `headerActions` (filtradas por permissão), `customModalComponent` e modo `readOnly` para edição de registros protegidos sem desabilitar o botão Editar; atualizadas referências legadas de `'DADOS_SENSIVEIS'` para `SENSITIVE_DATA_ROLE` (`'global:dados-sensiveis'`) no frontend; todas as 23 suítes de teste e typecheck do frontend 100% verdes.
 - **Fase 6 Concluída**: Implementado `PerfilFormModalComponent` com cards agrupados por funcionalidade, contadores de permissões, toggle global por funcionalidade e toggles individuais acessíveis (`role="switch"`, `aria-checked`), com bloqueio e ocultação do botão Salvar em modo `readOnly`; integrado `PerfisPageComponent` com `PerfilFormModalComponent`, `isRowReadOnly` para perfis de sistema, ação de cabeçalho "Sincronizar Permissões" (`perfis:sync`) e exibição de badges de funcionalidades limitada a 10 itens; todos os 24 arquivos de teste, typecheck e build do frontend 100% verdes.
+- **Fase 7 Concluída**: Validação completa de qualidade e conformidade: 0 ocorrências de `any` em todo o projeto, 100% de cobertura em testes (backend 27/27 suítes, 228 testes; frontend 24/24 suítes, 100 testes; utils 2/2 suítes, 11 testes); lint e typecheck 100% aprovados sem erros; builds de backend e frontend gerados com sucesso; documentação atualizada em `specs/arquitetura.md` e `specs/crud-generico.md` com as novas tabelas relacionais de permissões, catálogo dinâmico de roles e extensões do CRUD genérico.
 

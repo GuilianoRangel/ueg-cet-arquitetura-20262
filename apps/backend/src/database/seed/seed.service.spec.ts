@@ -63,11 +63,7 @@ describe('SeedService', () => {
       permissionsServiceMock as PermissionsService,
     );
 
-    return new SeedService(
-      rolesSyncService,
-      transactionRunner,
-      configService,
-    );
+    return new SeedService(rolesSyncService, transactionRunner, configService);
   };
 
   it('should populate funcionalidades and funcionalidades_acoes from RolesCatalog and link all active actions to Administrador perfil', async () => {
@@ -88,14 +84,26 @@ describe('SeedService', () => {
     expect(funcionalidades.map((f) => f.nome).sort()).toEqual(
       ['categorias', 'global', 'users'].sort(),
     );
-    expect(acoes.map((a) => `${a.funcionalidade.nome}:${a.acao}`).sort()).toEqual(
-      ['users:read', 'users:create', 'categorias:read', SENSITIVE_DATA_ROLE].sort(),
+    expect(
+      acoes.map((a) => `${a.funcionalidade.nome}:${a.acao}`).sort(),
+    ).toEqual(
+      [
+        'users:read',
+        'users:create',
+        'categorias:read',
+        SENSITIVE_DATA_ROLE,
+      ].sort(),
     );
     expect(adminPerfil).toBeDefined();
     expect(adminPerfil?.sistema).toBe(true);
     expect(adminPerfil?.acoes.length).toBe(4);
     expect(adminPerfil?.roles.sort()).toEqual(
-      ['users:read', 'users:create', 'categorias:read', SENSITIVE_DATA_ROLE].sort(),
+      [
+        'users:read',
+        'users:create',
+        'categorias:read',
+        SENSITIVE_DATA_ROLE,
+      ].sort(),
     );
   });
 
@@ -115,9 +123,9 @@ describe('SeedService', () => {
       relations: ['funcionalidade'],
       withDeleted: false,
     });
-    expect(activeAcoes.map((a) => `${a.funcionalidade.nome}:${a.acao}`)).toEqual([
-      'users:read',
-    ]);
+    expect(
+      activeAcoes.map((a) => `${a.funcionalidade.nome}:${a.acao}`),
+    ).toEqual(['users:read']);
 
     // Check soft-deleted acoes exist with deletedAt
     const deletedAcoes = await acaoRepo.find({

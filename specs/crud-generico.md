@@ -168,8 +168,26 @@ Todos os `id` são UUID v4 em `varchar(36)`. Datas em UTC. Todas as entidades de
 | :--- | :--- | :--- |
 | `nome` | `string` (varchar 100) | obrigatório; único entre registros não excluídos |
 | `ativo` | `boolean` | default `true` |
-| `roles` | `string[]` | `@Column({ type: 'simple-json' })`, default `[]`; cada item deve existir no `RolesCatalog` |
+| `acoes` | `FuncionalidadeAcao[]` | `@ManyToMany(() => FuncionalidadeAcao)` através da tabela pivô `perfis_funcionalidades_acoes` |
 | `sistema` | `boolean` | default `false`; **somente o seed define `true`**; não aceito nos DTOs |
+| `acaoIds` | `string[]` (getter) | Array dos IDs das ações ativas associadas (usado nos DTOs e formulários) |
+| `funcionalidades` | `string[]` (getter) | Array de nomes únicos das funcionalidades associadas |
+| `roles` | `string[]` (getter) | Getter virtual para retrocompatibilidade com o formato `funcionalidade:acao` |
+
+> **Nota:** A coluna legada `roles` (`simple-json`) foi substituída pelo relacionamento relacional com as tabelas `funcionalidades` e `funcionalidades_acoes`. No `CrudConfig`, o campo `acaoIds` é configurado em `relationInputFields: ['acaoIds']` e sincronizado via método `syncRelations` do `PerfisService`.
+
+### 4.2.1 `Funcionalidade` — tabela `funcionalidades`
+| Campo | Tipo | Regra |
+| :--- | :--- | :--- |
+| `nome` | `string` (varchar 100) | obrigatório; índice único parcial `WHERE "deletedAt" IS NULL` |
+| `acoes` | `FuncionalidadeAcao[]` | `@OneToMany` relação 1:N com ações |
+
+### 4.2.2 `FuncionalidadeAcao` — tabela `funcionalidades_acoes`
+| Campo | Tipo | Regra |
+| :--- | :--- | :--- |
+| `funcionalidadeId` | `string` (varchar 36) | FK para `funcionalidades.id` (RESTRICT no delete) |
+| `acao` | `string` (varchar 100) | obrigatório; índice único composto parcial `(funcionalidadeId, acao)` onde ativo |
+| `role` | `string` (getter) | Formato `funcionalidade.nome:acao` (ex.: `users:read`, `global:dados-sensiveis`) |
 
 ### 4.3 `User` — tabela `users` (alterada)
 | Campo | Tipo | Regra |
@@ -416,6 +434,12 @@ O caso de uso lança `new BusinessException(mensagem, CODIGO, status)` (código 
 - `users-list`: `getUsers()` passa a chamar `GET /users?limit=5000` e usar `items`; remove coluna/badge de `role` e exibe os nomes dos `perfis`.
 - Demais usos de `role`/`isAdmin` (header etc.) ajustados; testes existentes atualizados.
 - Erros: `parseAuthError` continua lendo `error.error.error` (compatível). Exclusão com modal customizado permanece regra para futuras telas.
+
+### 8.1 Extensões do Componente Genérico (`GenericCrudPageComponent`)
+Para atender a cenários especializados mantendo a coerência da arquitetura de CRUD genérico:
+- **`headerActions`**: Lista de ações globais renderizadas no cabeçalho da página (ex.: botão "Sincronizar Permissões"), com verificação de role (`requiredRole`), estado de carregamento dinâmico (`loading`) e handler customizado.
+- **`customModalComponent`**: Permite substituir o formulário dinâmico padrão (`GenericCrudFormComponent`) por um componente modal especializado (como `PerfilFormModalComponent` para edição por cards e toggles de ações), recebendo `item`, `mode` (`create` | `edit` | `view`), `schema` e `onSave`.
+- **`isRowReadOnly`**: Predicado `(item: T) => boolean` que determina se a ação de edição padrão deve abrir o modal em modo somente leitura (view mode sem permissão de alteração/botão salvar), protegendo perfis de sistema (`sistema: true`).
 
 ---
 

@@ -11,6 +11,7 @@ import {
   ADMIN_PERFIL_NOME,
   CrudResourceMetaDto,
   FuncionalidadeGroupDto,
+  RolesSyncResultDto,
 } from '@repo/utils';
 import { DataSource } from 'typeorm';
 import { Perfil } from './perfis/entities/perfil.entity';
@@ -94,7 +95,7 @@ describe('CRUD Flow End-to-End Integration', () => {
         // ignore
       }
     }
-  });
+  }, 30000);
 
   it('1. should boot, run migrations and seed the admin user and the Administrador perfil', async () => {
     const dataSource = app.get(DataSource);
@@ -153,15 +154,18 @@ describe('CRUD Flow End-to-End Integration', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
-    const funcionalidades = rolesCatalogRes.body
-      .funcionalidades as FuncionalidadeGroupDto[];
+    const funcionalidades = (
+      rolesCatalogRes.body as { funcionalidades: FuncionalidadeGroupDto[] }
+    ).funcionalidades;
     expect(Array.isArray(funcionalidades)).toBe(true);
 
     const syncRes = await request(server)
       .post('/roles/sync')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    expect(syncRes.body.totalActiveActions).toBeGreaterThan(0);
+    expect(
+      (syncRes.body as RolesSyncResultDto).totalActiveActions,
+    ).toBeGreaterThan(0);
 
     const findAcao = (role: string) => {
       for (const f of funcionalidades) {
@@ -276,8 +280,9 @@ describe('CRUD Flow End-to-End Integration', () => {
       .get('/roles')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    const funcionalidades = rolesCatalogRes.body
-      .funcionalidades as FuncionalidadeGroupDto[];
+    const funcionalidades = (
+      rolesCatalogRes.body as { funcionalidades: FuncionalidadeGroupDto[] }
+    ).funcionalidades;
     const findAcao = (role: string) => {
       for (const f of funcionalidades) {
         for (const a of f.acoes) {
@@ -374,7 +379,9 @@ describe('CRUD Flow End-to-End Integration', () => {
       .get('/roles')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    const funcs = rolesCatRes.body.funcionalidades as FuncionalidadeGroupDto[];
+    const funcs = (
+      rolesCatRes.body as { funcionalidades: FuncionalidadeGroupDto[] }
+    ).funcionalidades;
     let sensitiveAcaoId = '';
     for (const f of funcs) {
       for (const a of f.acoes) {
