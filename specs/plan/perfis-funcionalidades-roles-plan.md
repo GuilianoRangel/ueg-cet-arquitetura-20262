@@ -114,24 +114,24 @@
 > - Ler: `specs/perfis-funcionalidades-roles.md` (Seções 5.2 e 5.3), `apps/backend/src/perfis/roles-catalog.controller.ts`, `apps/backend/src/perfis/perfis.service.ts`, `apps/backend/src/perfis/dto/perfil.dto.ts`.
 > - Skills ativas: `execute-plan`, `generic-crud-usecase`, `nestjs-best-practices`, `nestjs-testing-expert`.
 
-- [ ] 4.1 **Testes** em `apps/backend/src/perfis/roles-catalog.controller.spec.ts`:
+- [x] 4.1 **Testes** em `apps/backend/src/perfis/roles-catalog.controller.spec.ts`:
   - `GET /roles should return active funcionalidades and their active acoes grouped and sorted`
   - `POST /roles/sync should require perfis:sync role and invoke RolesSyncService.sync()`
-- [ ] 4.2 Evoluir `apps/backend/src/perfis/roles-catalog.controller.ts`:
+- [x] 4.2 Evoluir `apps/backend/src/perfis/roles-catalog.controller.ts`:
   - `GET /roles` (`@Operation('perfis:read')`): buscar do banco as `Funcionalidade`s ativas com suas `FuncionalidadeAcao`s ativas e retornar `{ funcionalidades: FuncionalidadeGroupDto[] }`.
   - `POST /roles/sync` (`@Operation('perfis:sync')`): acionar `RolesSyncService.sync()` e retornar `RolesSyncResultDto`.
-- [ ] 4.3 **Testes** em `apps/backend/src/perfis/perfis.service.spec.ts`:
+- [x] 4.3 **Testes** em `apps/backend/src/perfis/perfis.service.spec.ts`:
   - Atualizar cenários de criação e edição de perfil para enviar `acaoIds: string[]` (IDs de `FuncionalidadeAcao` ativas).
   - Testar falha `400 PERFIL_ACAO_INVALID` (com `field: 'acaoIds'`) quando um `acaoId` não existe ou está com `deletedAt !== null`.
   - Testar que o retorno de `create`, `update`, `findOne` e `findAll` inclui `acaoIds`, `funcionalidades` (nomes únicos das funcionalidades) e `roles`.
-- [ ] 4.4 Evoluir `CreatePerfilDto`, `UpdatePerfilDto` (`apps/backend/src/perfis/dto/perfil.dto.ts`), `perfilCrudConfig` (`apps/backend/src/perfis/perfil.config.ts`) e `PerfisService` (`apps/backend/src/perfis/perfis.service.ts`):
+- [x] 4.4 Evoluir `CreatePerfilDto`, `UpdatePerfilDto` (`apps/backend/src/perfis/dto/perfil.dto.ts`), `perfilCrudConfig` (`apps/backend/src/perfis/perfil.config.ts`) e `PerfisService` (`apps/backend/src/perfis/perfis.service.ts`):
   - Substituir `roles: string[]` por `acaoIds: string[]` (`@IsArray()`, `@ArrayUnique()`, `@IsUUID('4', { each: true })`) em `CreatePerfilDto`.
   - Configurar `relations: ['acoes', 'acoes.funcionalidade']` em `perfilCrudConfig`.
   - Em `PerfisService`, criar métodos privados nomeados para:
     - Validar `acaoIds` contra `FuncionalidadeAcao` ativas (`validarAcoesCreate` e `validarAcoesUpdate`).
     - Vincular as entidades `FuncionalidadeAcao` em `beforeCreate` e `beforeUpdate` (`vincularAcoesCreate` e `vincularAcoesUpdate`).
-- [ ] 4.5 Atualizar `apps/backend/src/crud-flow.integration.spec.ts` e demais specs do backend para utilizar `SENSITIVE_DATA_ROLE` (`'global:dados-sensiveis'`), o novo formato de `GET /roles`, `POST /roles/sync` e `acaoIds` em `/perfis`.
-- [ ] 4.6 **Checkpoint da Fase 4**: Executar `pnpm --filter backend test` e `pnpm --filter backend build` garantindo que todas as 27 suítes de teste do backend passem 100%.
+- [x] 4.5 Atualizar `apps/backend/src/crud-flow.integration.spec.ts` e demais specs do backend para utilizar `SENSITIVE_DATA_ROLE` (`'global:dados-sensiveis'`), o novo formato de `GET /roles`, `POST /roles/sync` e `acaoIds` em `/perfis`.
+- [x] 4.6 **Checkpoint da Fase 4**: Executar `pnpm --filter backend test` e `pnpm --filter backend build` garantindo que todas as 27 suítes de teste do backend passem 100%.
 
 ---
 
@@ -212,4 +212,5 @@
 - **Fase 1 Concluída**: Padronizado `SENSITIVE_DATA_ROLE` para `'global:dados-sensiveis'` em `@repo/utils`, criado contrato de roles em `packages/utils/src/contracts/roles.ts` (`FuncionalidadeAcaoDto`, `FuncionalidadeGroupDto`, `RolesSyncResultDto`) e exportado no pacote. Testes e build de `@repo/utils` 100% verdes.
 - **Fase 2 Concluída**: Validação de roles simplificada via `ROLE_FORMAT` em `RolesCatalog`; criadas entidades `Funcionalidade`, `FuncionalidadeAcao` e relação `@ManyToMany` em `Perfil` com tabela pivô `perfis_funcionalidades_acoes` e remoção da coluna `roles`; criada migration `1793200000000-CreateFuncionalidadesAndAcoes.ts` com índices únicos parciais (`deletedAt IS NULL`); testes de migration e roles catalog 100% verdes.
 - **Fase 3 Concluída**: Criado `RolesSyncService` com suporte a sincronização atômica (adição de novas funcionalidades/ações gerando novos UUIDs, soft delete de obsoletas e de funcionalidades vazias, auto-associação de todas as ações ativas ao perfil `Administrador` e invalidação de cache); `SeedService` integrado ao `RolesSyncService`; `PermissionsService` atualizado para carregar relações `acoes.funcionalidade` ignorando registros deletados; testes de seed e permissions 100% verdes.
+- **Fase 4 Concluída**: Implementados endpoints `GET /roles` (agrupamento e ordenação de funcionalidades/ações) e `POST /roles/sync` (`perfis:sync`); DTOs de Perfil refatorados para `acaoIds: string[]` com validação de UUID e integridade semântica em `PerfisService` (`validarAcoesCreate` e `validarAcoesUpdate`), preservação de prototype em `MaskService` e sincronização de relações em `syncRelations`; todas as 27 suítes de teste do backend e o build 100% verdes.
 

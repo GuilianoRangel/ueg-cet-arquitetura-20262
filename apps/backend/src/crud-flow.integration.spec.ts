@@ -10,6 +10,7 @@ import {
   SENSITIVE_DATA_ROLE,
   ADMIN_PERFIL_NOME,
   CrudResourceMetaDto,
+  FuncionalidadeGroupDto,
 } from '@repo/utils';
 import { DataSource } from 'typeorm';
 import { Perfil } from './perfis/entities/perfil.entity';
@@ -102,6 +103,7 @@ describe('CRUD Flow End-to-End Integration', () => {
 
     const adminPerfil = await perfilRepo.findOne({
       where: { nome: ADMIN_PERFIL_NOME, sistema: true },
+      relations: ['acoes', 'acoes.funcionalidade'],
     });
     expect(adminPerfil).toBeDefined();
     expect(adminPerfil?.sistema).toBe(true);
@@ -145,6 +147,31 @@ describe('CRUD Flow End-to-End Integration', () => {
   });
 
   it('3. admin can create a perfil, a user with that perfil and the user receives its roles after cache invalidation', async () => {
+    // Check GET /roles and POST /roles/sync
+    const rolesCatalogRes = await request(server)
+      .get('/roles')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    const funcionalidades = rolesCatalogRes.body
+      .funcionalidades as FuncionalidadeGroupDto[];
+    expect(Array.isArray(funcionalidades)).toBe(true);
+
+    const syncRes = await request(server)
+      .post('/roles/sync')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(syncRes.body.totalActiveActions).toBeGreaterThan(0);
+
+    const findAcao = (role: string) => {
+      for (const f of funcionalidades) {
+        for (const a of f.acoes) {
+          if (a.role === role) return a.id;
+        }
+      }
+      throw new Error(`Role ${role} not found in catalog response`);
+    };
+
     // Create new perfil
     const perfilRes = await request(server)
       .post('/perfis')
@@ -152,7 +179,7 @@ describe('CRUD Flow End-to-End Integration', () => {
       .send({
         nome: 'Leitor Categorias',
         ativo: true,
-        roles: ['categorias:read'],
+        acaoIds: [findAcao('categorias:read')],
       })
       .expect(201);
 
@@ -245,13 +272,28 @@ describe('CRUD Flow End-to-End Integration', () => {
 
   it('5. user without DADOS_SENSIVEIS creating categoria with valor gets 403 FORBIDDEN_SENSITIVE_FIELD in ApiErrorResponse format', async () => {
     // Create editor perfil with categorias:create and categorias:read but without DADOS_SENSIVEIS
+    const rolesCatalogRes = await request(server)
+      .get('/roles')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    const funcionalidades = rolesCatalogRes.body
+      .funcionalidades as FuncionalidadeGroupDto[];
+    const findAcao = (role: string) => {
+      for (const f of funcionalidades) {
+        for (const a of f.acoes) {
+          if (a.role === role) return a.id;
+        }
+      }
+      throw new Error(`Role ${role} not found in catalog response`);
+    };
+
     const editorPerfilRes = await request(server)
       .post('/perfis')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         nome: 'Editor Categorias',
         ativo: true,
-        roles: ['categorias:create', 'categorias:read'],
+        acaoIds: [findAcao('categorias:create'), findAcao('categorias:read')],
       })
       .expect(201);
 
@@ -290,7 +332,7 @@ describe('CRUD Flow End-to-End Integration', () => {
         path: '/categorias',
       }),
     );
-    expect(body.message).toContain('DADOS_SENSIVEIS');
+    expect(body.message).toContain(SENSITIVE_DATA_ROLE);
   });
 
   it('6. admin with DADOS_SENSIVEIS creates and sees real valor, while user without DADOS_SENSIVEIS sees 99999 until granted', async () => {
@@ -328,13 +370,27 @@ describe('CRUD Flow End-to-End Integration', () => {
     expect(leitorFindOneBody.valor).toBe(99999);
 
     // Create sensitive perfil
+    const rolesCatRes = await request(server)
+      .get('/roles')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    const funcs = rolesCatRes.body.funcionalidades as FuncionalidadeGroupDto[];
+    let sensitiveAcaoId = '';
+    for (const f of funcs) {
+      for (const a of f.acoes) {
+        if (a.role === SENSITIVE_DATA_ROLE) {
+          sensitiveAcaoId = a.id;
+        }
+      }
+    }
+
     const sensitivePerfilRes = await request(server)
       .post('/perfis')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         nome: 'Acesso Dados Sensiveis',
         ativo: true,
-        roles: [SENSITIVE_DATA_ROLE],
+        acaoIds: [sensitiveAcaoId],
       })
       .expect(201);
 

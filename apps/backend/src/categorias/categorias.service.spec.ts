@@ -4,6 +4,8 @@ import { CategoriasService } from './categorias.service';
 import { Categoria } from './entities/categoria.entity';
 import { User } from '../users/entities/user.entity';
 import { Perfil } from '../perfis/entities/perfil.entity';
+import { Funcionalidade } from '../perfis/entities/funcionalidade.entity';
+import { FuncionalidadeAcao } from '../perfis/entities/funcionalidade-acao.entity';
 import { TransactionRunner } from '../common/crud/transaction-runner';
 import { MaskService } from '../common/crud/masking/mask.service';
 import { PermissionsService } from '../auth/permissions/permissions.service';
@@ -55,7 +57,7 @@ describe('CategoriasService', () => {
       type: 'sqlite',
       database: ':memory:',
       synchronize: true,
-      entities: [Categoria, User, Perfil],
+      entities: [Categoria, User, Perfil, Funcionalidade, FuncionalidadeAcao],
       logging: false,
     });
     await dataSource.initialize();

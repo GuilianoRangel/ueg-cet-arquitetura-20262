@@ -13,6 +13,8 @@ export const perfilCrudConfig: CrudConfig<
   updateDto: UpdatePerfilDto,
   deleteMode: 'soft',
   sortable: ['nome', 'ativo', 'createdAt'],
+  relations: ['acoes', 'acoes.funcionalidade'],
+  relationInputFields: ['acaoIds'],
   filters: {
     nome: {
       type: 'string',

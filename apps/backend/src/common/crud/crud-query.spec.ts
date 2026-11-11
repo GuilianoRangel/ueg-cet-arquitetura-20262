@@ -350,7 +350,7 @@ describe('crud-query', () => {
           maskedFields,
         ),
       'FORBIDDEN_SENSITIVE_FIELD',
-      'O campo "valor" exige a role DADOS_SENSIVEIS',
+      `O campo "valor" exige a role ${SENSITIVE_DATA_ROLE}`,
     );
   });
 
@@ -364,7 +364,7 @@ describe('crud-query', () => {
           maskedFields,
         ),
       'FORBIDDEN_SENSITIVE_FIELD',
-      'O campo "valor" exige a role DADOS_SENSIVEIS',
+      `O campo "valor" exige a role ${SENSITIVE_DATA_ROLE}`,
     );
   });
 

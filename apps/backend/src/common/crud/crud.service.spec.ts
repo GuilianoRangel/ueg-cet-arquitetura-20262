@@ -6,6 +6,8 @@ import { CrudConfig, AuthenticatedUser } from './crud.types';
 import { Categoria } from '../../categorias/entities/categoria.entity';
 import { User } from '../../users/entities/user.entity';
 import { Perfil } from '../../perfis/entities/perfil.entity';
+import { Funcionalidade } from '../../perfis/entities/funcionalidade.entity';
+import { FuncionalidadeAcao } from '../../perfis/entities/funcionalidade-acao.entity';
 import { TransactionRunner } from './transaction-runner';
 import { PermissionsService } from '../../auth/permissions/permissions.service';
 import { MaskService } from './masking/mask.service';
@@ -128,7 +130,7 @@ describe('CrudService', () => {
     dataSource = new DataSource({
       type: 'sqlite',
       database: ':memory:',
-      entities: [User, Perfil, Categoria],
+      entities: [User, Perfil, Funcionalidade, FuncionalidadeAcao, Categoria],
       migrations: [
         join(__dirname, '..', '..', 'database', 'migrations', '*{.ts,.js}'),
       ],

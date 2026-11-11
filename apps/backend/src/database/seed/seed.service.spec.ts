@@ -66,7 +66,6 @@ describe('SeedService', () => {
     return new SeedService(
       rolesSyncService,
       transactionRunner,
-      permissionsServiceMock as PermissionsService,
       configService,
     );
   };

@@ -6,6 +6,7 @@ import {
   IsString,
   MaxLength,
   ArrayUnique,
+  IsUUID,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -47,20 +48,20 @@ export class CreatePerfilDto {
   ativo?: boolean;
 
   @FormFieldMeta({
-    label: 'Permissões (Roles)',
+    label: 'Ações de Funcionalidades',
     inputType: 'multiselect',
     optionsEndpoint: '/roles',
     order: 2,
   })
   @ApiProperty({
-    example: ['categorias:read', 'categorias:create'],
-    description: 'Lista de permissões (roles) atribuídas ao perfil',
+    example: ['1752ee92-332b-4beb-b88a-14242a14a308'],
+    description: 'Lista de IDs de FuncionalidadeAcao atribuídas ao perfil',
     type: [String],
   })
   @IsArray()
   @ArrayUnique()
-  @IsString({ each: true })
-  roles!: string[];
+  @IsUUID('4', { each: true })
+  acaoIds!: string[];
 }
 
 export class UpdatePerfilDto extends createUpdateDto(CreatePerfilDto) {}

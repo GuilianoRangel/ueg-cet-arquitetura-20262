@@ -1,6 +1,8 @@
 import { DataSource } from 'typeorm';
 import { PerfisService } from './perfis.service';
 import { Perfil } from './entities/perfil.entity';
+import { Funcionalidade } from './entities/funcionalidade.entity';
+import { FuncionalidadeAcao } from './entities/funcionalidade-acao.entity';
 import { User } from '../users/entities/user.entity';
 import { Categoria } from '../categorias/entities/categoria.entity';
 import { TransactionRunner } from '../common/crud/transaction-runner';
@@ -47,6 +49,12 @@ describe('PerfisService', () => {
   let maskService: MaskService;
   let service: PerfisService;
 
+  let acaoUsersRead: FuncionalidadeAcao;
+  let acaoUsersCreate: FuncionalidadeAcao;
+  let acaoPerfisRead: FuncionalidadeAcao;
+  let acaoPerfisCreate: FuncionalidadeAcao;
+  let acaoDeleted: FuncionalidadeAcao;
+
   const defaultUser: AuthenticatedUser = {
     id: '11111111-1111-1111-1111-111111111111',
     email: 'admin@ueg.br',
@@ -68,10 +76,37 @@ describe('PerfisService', () => {
       type: 'sqlite',
       database: ':memory:',
       synchronize: true,
-      entities: [Perfil, User, Categoria],
+      entities: [Perfil, User, Categoria, Funcionalidade, FuncionalidadeAcao],
       logging: false,
     });
     await dataSource.initialize();
+
+    const funcRepo = dataSource.getRepository(Funcionalidade);
+    const acaoRepo = dataSource.getRepository(FuncionalidadeAcao);
+
+    const fUsers = await funcRepo.save(funcRepo.create({ nome: 'users' }));
+    const fPerfis = await funcRepo.save(funcRepo.create({ nome: 'perfis' }));
+
+    acaoUsersRead = await acaoRepo.save(
+      acaoRepo.create({ funcionalidadeId: fUsers.id, acao: 'read' }),
+    );
+    acaoUsersCreate = await acaoRepo.save(
+      acaoRepo.create({ funcionalidadeId: fUsers.id, acao: 'create' }),
+    );
+    acaoPerfisRead = await acaoRepo.save(
+      acaoRepo.create({ funcionalidadeId: fPerfis.id, acao: 'read' }),
+    );
+    acaoPerfisCreate = await acaoRepo.save(
+      acaoRepo.create({ funcionalidadeId: fPerfis.id, acao: 'create' }),
+    );
+
+    acaoDeleted = await acaoRepo.save(
+      acaoRepo.create({
+        funcionalidadeId: fUsers.id,
+        acao: 'delete',
+        deletedAt: new Date(),
+      }),
+    );
 
     runner = new TransactionRunner(dataSource);
     maskService = new MaskService();
@@ -97,28 +132,38 @@ describe('PerfisService', () => {
     }
   });
 
-  it('should create a perfil with valid roles and store roles as an array', async () => {
+  it('should create a perfil with valid acaoIds and expose acaoIds, funcionalidades, and roles', async () => {
     const created = await service.create(
       {
         nome: 'Operador',
         ativo: true,
-        roles: ['users:read', 'perfis:read'],
+        acaoIds: [acaoUsersRead.id, acaoPerfisRead.id],
       },
       defaultUser,
     );
 
     expect(created.id).toBeDefined();
     expect(created.nome).toBe('Operador');
-    expect(Array.isArray(created.roles)).toBe(true);
-    expect(created.roles).toEqual(['users:read', 'perfis:read']);
     expect(created.sistema).toBe(false);
+    expect(created.acaoIds.sort()).toEqual(
+      [acaoUsersRead.id, acaoPerfisRead.id].sort(),
+    );
+    expect(created.funcionalidades.sort()).toEqual(['perfis', 'users'].sort());
+    expect(created.roles.sort()).toEqual(['perfis:read', 'users:read'].sort());
+
+    const found = await service.findOne(created.id, defaultUser);
+    expect(found.acaoIds.sort()).toEqual(
+      [acaoUsersRead.id, acaoPerfisRead.id].sort(),
+    );
+    expect(found.funcionalidades.sort()).toEqual(['perfis', 'users'].sort());
+    expect(found.roles.sort()).toEqual(['perfis:read', 'users:read'].sort());
   });
 
   it('should throw 409 PERFIL_NOME_EXISTS for duplicated nome among non-deleted (case-insensitive)', async () => {
     await service.create(
       {
         nome: 'Suporte',
-        roles: ['users:read'],
+        acaoIds: [acaoUsersRead.id],
       },
       defaultUser,
     );
@@ -127,7 +172,7 @@ describe('PerfisService', () => {
       service.create(
         {
           nome: 'suporte',
-          roles: ['perfis:read'],
+          acaoIds: [acaoPerfisRead.id],
         },
         defaultUser,
       ),
@@ -141,7 +186,7 @@ describe('PerfisService', () => {
     const created = await service.create(
       {
         nome: 'Temporario',
-        roles: ['users:read'],
+        acaoIds: [acaoUsersRead.id],
       },
       defaultUser,
     );
@@ -151,7 +196,7 @@ describe('PerfisService', () => {
     const recreated = await service.create(
       {
         nome: 'temporario',
-        roles: ['perfis:read'],
+        acaoIds: [acaoPerfisRead.id],
       },
       defaultUser,
     );
@@ -160,18 +205,44 @@ describe('PerfisService', () => {
     expect(recreated.nome).toBe('temporario');
   });
 
-  it('should throw 400 PERFIL_ROLE_INVALID listing the roles not in the catalog', async () => {
+  it('should throw 400 PERFIL_ACAO_INVALID when acaoId does not exist or is soft-deleted', async () => {
+    const fakeId = '99999999-9999-9999-9999-999999999999';
     await expectAsyncBusinessError(
       service.create(
         {
           nome: 'Invalido',
-          roles: ['users:read', 'role:inexistente1', 'role:inexistente2'],
+          acaoIds: [acaoUsersRead.id, fakeId, acaoDeleted.id],
         },
         defaultUser,
       ),
-      'PERFIL_ROLE_INVALID',
-      'role:inexistente1, role:inexistente2',
-      'roles',
+      'PERFIL_ACAO_INVALID',
+      fakeId,
+      'acaoIds',
+    );
+  });
+
+  it('should update a perfil acaoIds successfully', async () => {
+    const created = await service.create(
+      {
+        nome: 'Operador',
+        acaoIds: [acaoUsersRead.id],
+      },
+      defaultUser,
+    );
+
+    const updated = await service.update(
+      created.id,
+      {
+        nome: 'Operador Atualizado',
+        acaoIds: [acaoUsersRead.id, acaoPerfisCreate.id],
+        version: created.version,
+      },
+      defaultUser,
+    );
+
+    expect(updated.nome).toBe('Operador Atualizado');
+    expect(updated.roles.sort()).toEqual(
+      ['perfis:create', 'users:read'].sort(),
     );
   });
 
@@ -181,7 +252,7 @@ describe('PerfisService', () => {
       perfilRepo.create({
         nome: 'Administrador',
         sistema: true,
-        roles: ['users:read'],
+        acoes: [acaoUsersRead],
         ultimoUsuarioId: defaultUser.id,
       }),
     );
@@ -205,7 +276,7 @@ describe('PerfisService', () => {
       perfilRepo.create({
         nome: 'Administrador',
         sistema: true,
-        roles: ['users:read'],
+        acoes: [acaoUsersRead],
         ultimoUsuarioId: defaultUser.id,
       }),
     );
@@ -223,7 +294,7 @@ describe('PerfisService', () => {
     const perfil = await perfilRepo.save(
       perfilRepo.create({
         nome: 'Docente',
-        roles: ['users:read'],
+        acoes: [acaoUsersRead],
         ultimoUsuarioId: defaultUser.id,
       }),
     );
@@ -256,7 +327,7 @@ describe('PerfisService', () => {
     const perfil = await perfilRepo.save(
       perfilRepo.create({
         nome: 'Docente2',
-        roles: ['users:read'],
+        acoes: [acaoUsersRead],
         ultimoUsuarioId: defaultUser.id,
       }),
     );
@@ -286,7 +357,7 @@ describe('PerfisService', () => {
     const created = await service.create(
       {
         nome: 'Atendente',
-        roles: ['users:read'],
+        acaoIds: [acaoUsersRead.id],
       },
       defaultUser,
     );

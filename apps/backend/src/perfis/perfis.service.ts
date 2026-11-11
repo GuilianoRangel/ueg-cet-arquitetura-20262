@@ -1,11 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Raw, Not } from 'typeorm';
+import { Raw, Not, In, IsNull, EntityManager } from 'typeorm';
 import { CrudService, CrudDeps } from '../common/crud/crud.service';
 import { CrudContext } from '../common/crud/crud.types';
 import { Perfil } from './entities/perfil.entity';
+import { FuncionalidadeAcao } from './entities/funcionalidade-acao.entity';
 import { CreatePerfilDto, UpdatePerfilDto } from './dto/perfil.dto';
 import { PermissionsService } from '../auth/permissions/permissions.service';
-import { RolesCatalog } from '../auth/permissions/roles-catalog';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { User } from '../users/entities/user.entity';
 import { perfilCrudConfig } from './perfil.config';
@@ -26,9 +26,9 @@ export class PerfisService extends CrudService<
     this.addValidator('create', (ctx) => this.validarNomeUnicoCreate(ctx));
     this.addValidator('update', (ctx) => this.validarNomeUnicoUpdate(ctx));
 
-    // 2. Roles validation against RolesCatalog
-    this.addValidator('create', (ctx) => this.validarRolesCreate(ctx));
-    this.addValidator('update', (ctx) => this.validarRolesUpdate(ctx));
+    // 2. Acoes validation against active FuncionalidadeAcao
+    this.addValidator('create', (ctx) => this.validarAcoesCreate(ctx));
+    this.addValidator('update', (ctx) => this.validarAcoesUpdate(ctx));
 
     // 3. Sistema protegido for update and remove
     this.addValidator('update', (ctx) =>
@@ -45,6 +45,25 @@ export class PerfisService extends CrudService<
     this.addAfterCommitHook('create', () => this.invalidarCachePermissoes());
     this.addAfterCommitHook('update', () => this.invalidarCachePermissoes());
     this.addAfterCommitHook('remove', () => this.invalidarCachePermissoes());
+  }
+
+  protected override async syncRelations(
+    id: string,
+    input: CreatePerfilDto | UpdatePerfilDto,
+    ctx: CrudContext<Perfil, CreatePerfilDto | UpdatePerfilDto>,
+  ): Promise<void> {
+    if (input.acaoIds !== undefined) {
+      const perfil = await ctx.manager.findOne(Perfil, {
+        where: { id },
+        relations: ['acoes'],
+      });
+      const currentIds = (perfil?.acoes || []).map((a) => a.id);
+      await ctx.manager
+        .createQueryBuilder()
+        .relation(Perfil, 'acoes')
+        .of(id)
+        .addAndRemove(input.acaoIds, currentIds);
+    }
   }
 
   private async validarNomeUnicoCreate(
@@ -93,26 +112,36 @@ export class PerfisService extends CrudService<
     }
   }
 
-  private validarRoles(roles?: string[]): void {
-    if (!roles) return;
-    const catalog = new Set(RolesCatalog.all());
-    const invalid = roles.filter((r) => !catalog.has(r));
+  private async validarAcoes(
+    manager: EntityManager,
+    acaoIds?: string[],
+  ): Promise<void> {
+    if (!acaoIds || acaoIds.length === 0) return;
+    const acoes = await manager.getRepository(FuncionalidadeAcao).find({
+      where: { id: In(acaoIds), deletedAt: IsNull() },
+    });
+    const foundIds = new Set(acoes.map((a) => a.id));
+    const invalid = acaoIds.filter((id) => !foundIds.has(id));
     if (invalid.length > 0) {
       throw new BusinessException(
-        `Roles inválidas: ${invalid.join(', ')}`,
-        'PERFIL_ROLE_INVALID',
+        `Ações inválidas: ${invalid.join(', ')}`,
+        'PERFIL_ACAO_INVALID',
         HttpStatus.BAD_REQUEST,
-        'roles',
+        'acaoIds',
       );
     }
   }
 
-  private validarRolesCreate(ctx: CrudContext<Perfil, CreatePerfilDto>): void {
-    this.validarRoles(ctx.input.roles);
+  private async validarAcoesCreate(
+    ctx: CrudContext<Perfil, CreatePerfilDto>,
+  ): Promise<void> {
+    await this.validarAcoes(ctx.manager, ctx.input.acaoIds);
   }
 
-  private validarRolesUpdate(ctx: CrudContext<Perfil, UpdatePerfilDto>): void {
-    this.validarRoles(ctx.input.roles);
+  private async validarAcoesUpdate(
+    ctx: CrudContext<Perfil, UpdatePerfilDto>,
+  ): Promise<void> {
+    await this.validarAcoes(ctx.manager, ctx.input.acaoIds);
   }
 
   private validarPerfilSistemaNaoAlteravel(

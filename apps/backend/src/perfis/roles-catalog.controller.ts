@@ -1,46 +1,80 @@
-import { Controller, Get, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { FuncionalidadeGroupDto, RolesSyncResultDto } from '@repo/utils';
 import { Operation } from '../auth/permissions/operation.decorator';
-import { RolesCatalog } from '../auth/permissions/roles-catalog';
+import { RolesSyncService } from './roles-sync.service';
+import { Funcionalidade } from './entities/funcionalidade.entity';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('roles')
 @Controller('roles')
 export class RolesCatalogController {
+  constructor(
+    @InjectRepository(Funcionalidade)
+    private readonly funcRepo: Repository<Funcionalidade>,
+    private readonly rolesSyncService: RolesSyncService,
+  ) {}
+
   @Get()
   @Operation('perfis:read')
   @ApiOperation({
-    summary: 'Catálogo de permissões do sistema',
+    summary: 'Catálogo de funcionalidades e ações do sistema',
     description:
-      'Retorna a lista completa de roles registradas no sistema. Exige a role "perfis:read".',
+      'Retorna as funcionalidades ativas e suas ações registradas no sistema, agrupadas e ordenadas. Exige a role "perfis:read".',
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Catálogo de roles retornado com sucesso.',
-    schema: {
-      properties: {
-        roles: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['categorias:read', 'users:read', 'perfis:read'],
-        },
-      },
-    },
+    description: 'Catálogo de funcionalidades e ações retornado com sucesso.',
+  })
+  async getRoles(): Promise<{ funcionalidades: FuncionalidadeGroupDto[] }> {
+    const funcs = await this.funcRepo.find({
+      where: { deletedAt: IsNull() },
+      relations: ['acoes'],
+      order: { nome: 'ASC' },
+    });
+
+    const funcionalidades: FuncionalidadeGroupDto[] = [...funcs]
+      .sort((a, b) => a.nome.localeCompare(b.nome))
+      .map((f) => {
+        const activeAcoes = (f.acoes || [])
+          .filter((a) => a.deletedAt === null)
+          .sort((a, b) => a.acao.localeCompare(b.acao))
+          .map((a) => ({
+            id: a.id,
+            acao: a.acao,
+            role: `${f.nome}:${a.acao}`,
+          }));
+
+        return {
+          id: f.id,
+          nome: f.nome,
+          acoes: activeAcoes,
+        };
+      });
+
+    return { funcionalidades };
+  }
+
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  @Operation('perfis:sync')
+  @ApiOperation({
+    summary: 'Sincronizar catálogo de permissões com a base de dados',
+    description:
+      'Compara o catálogo em código com as tabelas relacionais, aplicando adições, soft deletes e vinculando ao perfil Administrador. Exige a role "perfis:sync".',
   })
   @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: 'Token JWT ausente ou inválido.',
+    status: HttpStatus.OK,
+    description: 'Sincronização executada com sucesso.',
   })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
-    description: 'Acesso negado (exige permissão "perfis:read").',
-  })
-  getRoles(this: void): { roles: string[] } {
-    return { roles: RolesCatalog.all() };
+  async syncRoles(): Promise<RolesSyncResultDto> {
+    return this.rolesSyncService.sync();
   }
 }

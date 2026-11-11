@@ -10,11 +10,14 @@ export class MaskService {
       ...args: unknown[]
     ) => unknown;
     const fields = getMaskedFields(constructor);
-    if (!fields || fields.length === 0) {
-      return { ...entity };
-    }
+    const copy = Object.assign(
+      Object.create(Object.getPrototypeOf(entity)),
+      entity,
+    ) as Record<string, unknown>;
 
-    const copy = { ...entity } as Record<string, unknown>;
+    if (!fields || fields.length === 0) {
+      return copy as T;
+    }
 
     for (const field of fields) {
       const requiredRole = field.role ?? SENSITIVE_DATA_ROLE;

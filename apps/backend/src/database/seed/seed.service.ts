@@ -5,7 +5,6 @@ import { ADMIN_PERFIL_NOME } from '@repo/utils';
 import { Perfil } from '../../perfis/entities/perfil.entity';
 import { User } from '../../users/entities/user.entity';
 import { TransactionRunner } from '../../common/crud/transaction-runner';
-import { PermissionsService } from '../../auth/permissions/permissions.service';
 import { RolesSyncService } from '../../perfis/roles-sync.service';
 
 @Injectable()
@@ -15,7 +14,6 @@ export class SeedService implements OnApplicationBootstrap {
   constructor(
     private readonly rolesSyncService: RolesSyncService,
     private readonly transactionRunner: TransactionRunner,
-    private readonly permissionsService: PermissionsService,
     private readonly configService: ConfigService,
   ) {}
 

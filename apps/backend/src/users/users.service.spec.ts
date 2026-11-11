@@ -4,6 +4,8 @@ import { ADMIN_PERFIL_NOME } from '@repo/utils';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { Perfil } from '../perfis/entities/perfil.entity';
+import { Funcionalidade } from '../perfis/entities/funcionalidade.entity';
+import { FuncionalidadeAcao } from '../perfis/entities/funcionalidade-acao.entity';
 import { Categoria } from '../categorias/entities/categoria.entity';
 import { TransactionRunner } from '../common/crud/transaction-runner';
 import { MaskService } from '../common/crud/masking/mask.service';
@@ -58,7 +60,7 @@ describe('UsersService', () => {
       type: 'sqlite',
       database: ':memory:',
       synchronize: true,
-      entities: [User, Perfil, Categoria],
+      entities: [User, Perfil, Funcionalidade, FuncionalidadeAcao, Categoria],
       logging: false,
     });
     await dataSource.initialize();
