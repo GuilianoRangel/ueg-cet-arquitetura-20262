@@ -81,4 +81,12 @@ export class Perfil extends BaseEntity {
   set roles(vals: string[]) {
     this._rolesList = vals;
   }
+
+  toJSON(): Record<string, unknown> {
+    return Object.assign({}, this, {
+      acaoIds: this.acaoIds,
+      funcionalidades: this.funcionalidades,
+      roles: this.roles,
+    }) as unknown as Record<string, unknown>;
+  }
 }

@@ -123,6 +123,36 @@ describe('PerfilFormModalComponent', () => {
     expect(catCreateToggle.getAttribute('aria-checked')).toBe('false');
   });
 
+  it('should mark acao toggles as active when their id is in initialData.acoes and acaoIds is missing', async () => {
+    const existingPerfil: PerfilDto = {
+      id: 'p-2',
+      nome: 'Editor',
+      ativo: true,
+      sistema: false,
+      acoes: [{ id: 'a-cat-read', acao: 'read' }],
+      version: 1,
+    };
+
+    await setupModal({
+      mode: 'edit',
+      initialData: existingPerfil,
+      readOnly: false,
+      entityLabel: 'Perfil',
+      service: {} as PerfisService,
+    });
+
+    const host = fixture.nativeElement as HTMLElement;
+    const catReadToggle = host.querySelector(
+      '[data-testid="action-toggle-a-cat-read"]',
+    ) as HTMLElement;
+    const catCreateToggle = host.querySelector(
+      '[data-testid="action-toggle-a-cat-create"]',
+    ) as HTMLElement;
+
+    expect(catReadToggle.getAttribute('aria-checked')).toBe('true');
+    expect(catCreateToggle.getAttribute('aria-checked')).toBe('false');
+  });
+
   it('should toggle all actions of a funcionalidade when clicking the card global toggle', async () => {
     await setupModal({
       mode: 'create',

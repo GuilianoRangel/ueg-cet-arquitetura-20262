@@ -37,7 +37,10 @@ export class PerfilFormModalComponent implements OnInit {
   readonly nome = signal<string>(this.data.initialData?.nome ?? '');
   readonly ativo = signal<boolean>(this.data.initialData?.ativo ?? true);
   readonly selectedAcaoIds = signal<Set<string>>(
-    new Set<string>(this.data.initialData?.acaoIds ?? []),
+    new Set<string>(
+      this.data.initialData?.acaoIds ??
+        (this.data.initialData?.acoes ?? []).map((a: { id: string }) => a.id),
+    ),
   );
 
   readonly funcionalidades = signal<FuncionalidadeGroupDto[]>([]);

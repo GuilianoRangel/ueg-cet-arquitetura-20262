@@ -8,6 +8,7 @@ export interface PerfilDto {
   id: string;
   nome: string;
   acaoIds?: string[];
+  acoes?: Array<{ id: string; acao: string; funcionalidadeId?: string }>;
   funcionalidades?: string[];
   roles?: string[];
   sistema: boolean;
