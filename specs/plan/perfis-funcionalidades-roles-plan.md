@@ -164,17 +164,17 @@
 > - Ler: `specs/perfis-funcionalidades-roles.md` (Seções 6.2 e 6.3), `apps/frontend/src/app/pages/perfis/perfis.service.ts`, `apps/frontend/src/app/pages/perfis/perfis-page.component.ts`.
 > - Skills ativas: `execute-plan`, `angular-dev`, `angular-testing`, `tailwind-design-system`, `frontend-design`, `clean-code`.
 
-- [ ] 6.1 Evoluir `PerfisService` em `apps/frontend/src/app/pages/perfis/perfis.service.ts`:
+- [x] 6.1 Evoluir `PerfisService` em `apps/frontend/src/app/pages/perfis/perfis.service.ts`:
   - Atualizar `PerfilDto` com `acaoIds: string[]`, `funcionalidades: string[]` e `roles: string[]`.
   - Adicionar método `getRolesCatalog(): Observable<{ funcionalidades: FuncionalidadeGroupDto[] }>` (`GET /roles`).
   - Adicionar método `syncRoles(): Observable<RolesSyncResultDto>` (`POST /roles/sync`).
-- [ ] 6.2 **Testes** para `PerfilFormModalComponent` em `apps/frontend/src/app/pages/perfis/perfil-form-modal.component.spec.ts`:
+- [x] 6.2 **Testes** para `PerfilFormModalComponent` em `apps/frontend/src/app/pages/perfis/perfil-form-modal.component.spec.ts`:
   - `should render a card for each funcionalidade and toggle buttons for each acao`
   - `should mark acao toggles as active when their id is in initialData.acaoIds and inactive otherwise`
   - `should toggle all actions of a funcionalidade when clicking the card global toggle`
   - `should submit payload with selected acaoIds only when clicking Salvar button`
   - `should disable all inputs and toggles and hide Salvar button when opened in readOnly mode (sistema=true)`
-- [ ] 6.3 Criar `PerfilFormModalComponent` em `apps/frontend/src/app/pages/perfis/perfil-form-modal.component.ts` (e `.html`):
+- [x] 6.3 Criar `PerfilFormModalComponent` em `apps/frontend/src/app/pages/perfis/perfil-form-modal.component.ts` (e `.html`):
   - Seguir os padrões do Design System (Tailwind CSS v4, tokens semânticos, acessibilidade `role="switch"`, `aria-checked`).
   - Renderizar campos `Nome do Perfil` e `Perfil Ativo`.
   - Renderizar painel de **Cards agrupados por Funcionalidade**:
@@ -182,16 +182,16 @@
     - Corpo do Card com **Toggle Button individual** para cada ação (`acao`) da funcionalidade.
   - Quando `readOnly === true`, desabilitar todos os controles e **não renderizar** o botão `"Salvar"`.
   - Quando `readOnly === false`, enviar `create` ou `update` com `{ nome, ativo, acaoIds, version }` ao clicar em `"Salvar"`.
-- [ ] 6.4 **Testes** em `apps/frontend/src/app/pages/perfis/perfis-page.component.spec.ts`:
+- [x] 6.4 **Testes** em `apps/frontend/src/app/pages/perfis/perfis-page.component.spec.ts`:
   - `should configure headerAction for Sincronizar Permissões with permission perfis:sync`
   - `should display unique funcionalidades badges limited to at most 10 items in table column`
   - `should configure customModalComponent and isRowReadOnly for sistema profiles`
-- [ ] 6.5 Atualizar `PerfisPageComponent` em `apps/frontend/src/app/pages/perfis/perfis-page.component.ts`:
+- [x] 6.5 Atualizar `PerfisPageComponent` em `apps/frontend/src/app/pages/perfis/perfis-page.component.ts`:
   - Configurar `customModalComponent: PerfilFormModalComponent`.
   - Configurar `isRowReadOnly: (row) => row.sistema` e `canDeleteRow: (row) => !row.sistema`.
   - Configurar `headerActions` com o botão `"Sincronizar Permissões"` (`permission: 'perfis:sync'`), que chama `perfisService.syncRoles()`, exibe toast de sucesso e recarrega a tabela.
   - Ajustar a coluna de permissões para `"Funcionalidades"`, extraindo `(row.funcionalidades ?? []).slice(0, 10)`.
-- [ ] 6.6 **Checkpoint da Fase 6**: Executar `pnpm --filter frontend test` e `pnpm --filter frontend typecheck` garantindo 100% de aprovação.
+- [x] 6.6 **Checkpoint da Fase 6**: Executar `pnpm --filter frontend test` e `pnpm --filter frontend typecheck` garantindo 100% de aprovação.
 
 ---
 
@@ -214,4 +214,5 @@
 - **Fase 3 Concluída**: Criado `RolesSyncService` com suporte a sincronização atômica (adição de novas funcionalidades/ações gerando novos UUIDs, soft delete de obsoletas e de funcionalidades vazias, auto-associação de todas as ações ativas ao perfil `Administrador` e invalidação de cache); `SeedService` integrado ao `RolesSyncService`; `PermissionsService` atualizado para carregar relações `acoes.funcionalidade` ignorando registros deletados; testes de seed e permissions 100% verdes.
 - **Fase 4 Concluída**: Implementados endpoints `GET /roles` (agrupamento e ordenação de funcionalidades/ações) e `POST /roles/sync` (`perfis:sync`); DTOs de Perfil refatorados para `acaoIds: string[]` com validação de UUID e integridade semântica em `PerfisService` (`validarAcoesCreate` e `validarAcoesUpdate`), preservação de prototype em `MaskService` e sincronização de relações em `syncRelations`; todas as 27 suítes de teste do backend e o build 100% verdes.
 - **Fase 5 Concluída**: Estendido `GenericCrudPageComponent` com suporte a `headerActions` (filtradas por permissão), `customModalComponent` e modo `readOnly` para edição de registros protegidos sem desabilitar o botão Editar; atualizadas referências legadas de `'DADOS_SENSIVEIS'` para `SENSITIVE_DATA_ROLE` (`'global:dados-sensiveis'`) no frontend; todas as 23 suítes de teste e typecheck do frontend 100% verdes.
+- **Fase 6 Concluída**: Implementado `PerfilFormModalComponent` com cards agrupados por funcionalidade, contadores de permissões, toggle global por funcionalidade e toggles individuais acessíveis (`role="switch"`, `aria-checked`), com bloqueio e ocultação do botão Salvar em modo `readOnly`; integrado `PerfisPageComponent` com `PerfilFormModalComponent`, `isRowReadOnly` para perfis de sistema, ação de cabeçalho "Sincronizar Permissões" (`perfis:sync`) e exibição de badges de funcionalidades limitada a 10 itens; todos os 24 arquivos de teste, typecheck e build do frontend 100% verdes.
 

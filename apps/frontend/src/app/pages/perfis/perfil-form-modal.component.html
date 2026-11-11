@@ -1,0 +1,200 @@
+<div class="flex flex-col max-h-[85vh] bg-card text-card-foreground rounded-xl shadow-lg border border-border overflow-hidden">
+  <!-- Cabeçalho do Modal -->
+  <div class="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
+    <div>
+      <h2 class="text-lg font-bold text-foreground">
+        {{ modalTitle() }}
+      </h2>
+      <p class="text-xs text-muted-foreground mt-0.5">
+        Defina o nome do perfil e selecione as permissões organizadas por funcionalidade.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="onClose()"
+      class="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
+      aria-label="Fechar"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Corpo do Modal -->
+  <div class="p-6 overflow-y-auto flex flex-col gap-6">
+    <!-- Banner de Erro de Backend -->
+    @if (backendError()) {
+      <div class="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ backendError() }}</span>
+      </div>
+    }
+
+    <!-- Dados Básicos -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+      <div class="sm:col-span-2 flex flex-col gap-1.5">
+        <label for="perfil-nome" class="text-xs font-semibold text-foreground">
+          Nome do Perfil <span class="text-destructive">*</span>
+        </label>
+        <input
+          id="perfil-nome"
+          type="text"
+          data-testid="perfil-nome-input"
+          [value]="nome()"
+          (input)="onNomeChange($event)"
+          [disabled]="data.readOnly ?? false"
+          placeholder="Ex: Operador de Vendas"
+          class="h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      <div class="flex items-center gap-2 h-10 pb-1">
+        <input
+          id="perfil-ativo"
+          type="checkbox"
+          data-testid="perfil-ativo-checkbox"
+          [checked]="ativo()"
+          (change)="onAtivoChange($event)"
+          [disabled]="data.readOnly ?? false"
+          class="h-4 w-4 rounded border-input text-primary focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        <label for="perfil-ativo" class="text-xs font-medium text-foreground cursor-pointer select-none">
+          Perfil Ativo
+        </label>
+      </div>
+    </div>
+
+    <!-- Divisor -->
+    <div class="border-t border-border pt-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-bold text-foreground">
+          Permissões por Funcionalidade
+        </h3>
+        <span class="text-xs text-muted-foreground font-mono">
+          {{ selectedAcaoIds().size }} permissão(ões) selecionada(s)
+        </span>
+      </div>
+
+      <!-- Estado de Carregamento -->
+      @if (loading()) {
+        <div class="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground text-sm">
+          <div class="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span>Carregando catálogo de permissões...</span>
+        </div>
+      } @else {
+        <!-- Grid de Cards de Funcionalidades -->
+        <div class="flex flex-col gap-3">
+          @for (func of funcionalidades(); track func.id) {
+            <div
+              [attr.data-testid]="'funcionalidade-card-' + func.nome"
+              class="border border-border rounded-lg bg-card/60 p-4 flex flex-col gap-3 shadow-xs hover:border-border/80 transition-colors"
+            >
+              <!-- Cabeçalho do Card da Funcionalidade -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold capitalize text-foreground">
+                    {{ func.nome }}
+                  </span>
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">
+                    {{ getSelectedCount(func) }}/{{ func.acoes.length }}
+                  </span>
+                </div>
+
+                <!-- Toggle Global da Funcionalidade -->
+                <button
+                  type="button"
+                  role="switch"
+                  [attr.aria-checked]="isFuncionalidadeFullySelected(func)"
+                  [disabled]="data.readOnly"
+                  (click)="toggleFuncionalidade(func)"
+                  [attr.data-testid]="'global-toggle-' + func.nome"
+                  class="inline-flex items-center gap-2 text-xs font-medium cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 text-muted-foreground hover:text-foreground"
+                >
+                  <span class="text-xs">Todas</span>
+                  <span
+                    class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden"
+                    [class.bg-primary]="isFuncionalidadeFullySelected(func)"
+                    [class.bg-muted]="!isFuncionalidadeFullySelected(func)"
+                  >
+                    <span
+                      class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out"
+                      [class.translate-x-4]="isFuncionalidadeFullySelected(func)"
+                      [class.translate-x-0]="!isFuncionalidadeFullySelected(func)"
+                    ></span>
+                  </span>
+                </button>
+              </div>
+
+              <!-- Ações da Funcionalidade -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                @for (acao of func.acoes; track acao.id) {
+                  <button
+                    type="button"
+                    role="switch"
+                    [attr.aria-checked]="isActionSelected(acao.id)"
+                    [disabled]="data.readOnly"
+                    (click)="toggleAction(acao.id)"
+                    (keydown.space)="$event.preventDefault(); toggleAction(acao.id)"
+                    (keydown.enter)="$event.preventDefault(); toggleAction(acao.id)"
+                    tabindex="0"
+                    [attr.data-testid]="'action-toggle-' + acao.id"
+                    class="flex items-center justify-between px-3 py-2 rounded-md border text-xs font-medium transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                    [class.bg-primary/10]="isActionSelected(acao.id)"
+                    [class.border-primary]="isActionSelected(acao.id)"
+                    [class.text-primary]="isActionSelected(acao.id)"
+                    [class.bg-muted/30]="!isActionSelected(acao.id)"
+                    [class.border-border]="!isActionSelected(acao.id)"
+                    [class.text-muted-foreground]="!isActionSelected(acao.id)"
+                  >
+                    <span class="truncate">{{ acao.acao }}</span>
+                    <span
+                      class="h-2 w-2 rounded-full shrink-0 ml-1.5"
+                      [class.bg-primary]="isActionSelected(acao.id)"
+                      [class.bg-muted-foreground/40]="!isActionSelected(acao.id)"
+                    ></span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Rodapé do Modal -->
+  <div class="px-6 py-4 border-t border-border flex items-center justify-end gap-3 bg-muted/20 shrink-0">
+    <button
+      type="button"
+      ui-button
+      variant="outline"
+      data-testid="perfil-cancel-btn"
+      (click)="onClose()"
+    >
+      {{ data.readOnly ? 'Fechar' : 'Cancelar' }}
+    </button>
+
+    @if (!data.readOnly) {
+      <button
+        type="button"
+        ui-button
+        variant="default"
+        data-testid="perfil-save-btn"
+        [disabled]="isSaveDisabled()"
+        (click)="onSubmit()"
+      >
+        @if (submitting()) {
+          <span>Salvando...</span>
+        } @else {
+          <span>Salvar</span>
+        }
+      </button>
+    }
+  </div>
+</div>
