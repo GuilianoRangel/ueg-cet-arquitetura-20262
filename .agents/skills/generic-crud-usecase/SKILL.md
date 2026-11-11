@@ -1,11 +1,11 @@
 ---
 name: generic-crud-usecase
-description: Criação e evolução de casos de uso (módulos) no backend NestJS utilizando a arquitetura de CRUD Genérico (CrudService, createCrudController, CrudConfig, hooks e validadores com métodos dedicados, DTOs, entidades TypeORM e OpenAPI/Swagger). Utilize esta skill sempre que for criar um novo módulo/entidade CRUD ou refatorar controllers/services existentes para o padrão de CRUD genérico.
+description: Criação e evolução de casos de uso (módulos) ponta a ponta (Backend NestJS e Frontend Angular) utilizando a arquitetura de CRUD Genérico (CrudService, createCrudController, CrudConfig, relações aninhadas, relationInputFields, serialização toJSON, RolesCatalog/RolesSyncService, GenericCrudPageComponent, headerActions, customModalComponent e modo readOnly). Utilize esta skill sempre que for criar um novo módulo/entidade CRUD ou refatorar controllers, services e telas existentes para o padrão de CRUD genérico.
 ---
 
 # Generic CRUD Use Case Skill
 
-Esta skill orienta o desenvolvimento e a padronização de casos de uso (módulos) no backend NestJS utilizando a infraestrutura centralizada de **CRUD Genérico** do projeto (`CrudService`, `createCrudController` e `CrudConfig`).
+Esta skill orienta o desenvolvimento e a padronização de casos de uso (módulos) no **backend NestJS** e **frontend Angular** utilizando a infraestrutura centralizada de **CRUD Genérico** do projeto (`CrudService`, `createCrudController`, `CrudConfig`, `GenericCrudService` e `GenericCrudPageComponent`).
 
 ---
 
@@ -13,16 +13,29 @@ Esta skill orienta o desenvolvimento e a padronização de casos de uso (módulo
 
 1. **Configuração Única (`<entidade>.config.ts`)**: O `CrudConfig` deve ser declarado em um arquivo próprio e compartilhado de forma idêntica entre o `Service` e o `Controller`.
 2. **Hooks e Validadores como Métodos Nomeados (Mandatório)**:
-   - Todo hook ou validador (`addValidator`, `addBeforeHook`, `addAfterHook`, `addAfterCommitHook`) **DEVE** ser implementado em um método privado dedicado com nome semântico que descreva sua ação e ciclo de vida.
+   - Todo hook ou validador (`addValidator`, `addBeforeHook`, `addAfterHook`, `addAfterCommitHook`, `addAfterFindHook`) **DEVE** ser implementado em um método privado dedicado com nome semântico que descreva sua ação e ciclo de vida.
    - O construtor deve apenas delegar para o método privado:
      ```typescript
      this.addValidator('create', (ctx) => this.validarEmailUnicoCreate(ctx));
      ```
-   - **Proibido**: Funções anônimas ou lógicas complexas inline no construtor.
-3. **Tratamento Padronizado de Exceções**: Violações de negócio devem sempre lançar `BusinessException` com código semântico em `UPPER_SNAKE_CASE` e status HTTP apropriado.
-4. **Concorrência Otimista**: Toda entidade herda `BaseEntity` com controle automático por coluna `version`. O `UpdateDto` exige `version: number`.
-5. **Auditoria e Soft-Delete**: Entidades usam soft-delete por padrão (`deleteMode: 'soft'`) e gravam o autor da alteração no campo `ultimoUsuarioId`.
-6. **OpenAPI / Swagger**: Todas as rotas geradas ou customizadas e propriedades de DTOs devem ser anotadas com decorators Swagger (`@ApiProperty`, `@ApiOperation`, `@ApiResponse`, etc.).
+   - **Proibido**: Funções anônimas com lógica complexa inline no construtor.
+3. **Tratamento Padronizado de Exceções (4º parâmetro `field`)**:
+   - Violações de negócio devem sempre lançar `BusinessException` com código semântico em `UPPER_SNAKE_CASE` e status HTTP apropriado.
+   - Quando o erro estiver associado a um campo de formulário específico, informe o nome do campo no **4º parâmetro** (`new BusinessException(msg, code, status, 'nomeDoCampo')`), permitindo que o `FormErrorHandlerService` no frontend vincule o erro diretamente ao controle do formulário.
+4. **Concorrência Otimista e `createUpdateDto`**:
+   - Toda entidade herda `BaseEntity` com controle automático por coluna `version`.
+   - O `UpdateDto` deve ser gerado com `createUpdateDto(CreateDto)` (que preserva metadados `@FormFieldMeta` e adiciona `@IsInt() version!: number`).
+5. **Desacoplamento de Relações (`relationInputFields` + `syncRelations`)**:
+   - Campos de DTO que recebem arrays de IDs de relacionamento (ex: `perfilIds`, `acaoIds`) e **não são colunas escalares** da tabela **DEVEM** ser declarados em `relationInputFields` no `CrudConfig` e sincronizados sobrescrevendo `syncRelations`.
+6. **Serialização de Getters em Entidades (`toJSON()`)**:
+   - Getters TypeScript (`get acaoIds()`, `get funcionalidades()`, `get roles()`) ficam no `prototype` da classe e **não são serializados** pelo `JSON.stringify` padrão do Express/NestJS.
+   - Sempre que uma entidade possuir getters que precisam ser enviados na resposta JSON da API, implemente `toJSON()` na entidade expondo explicitamente essas propriedades.
+7. **Padrão de Permissões (`RolesCatalog` e `RolesSyncService`)**:
+   - Todas as roles seguem estritamente o formato `<funcionalidade>:<acao>` em kebab-case minúsculo (`ROLE_FORMAT`) ou `global:<acao>` (ex: `SENSITIVE_DATA_ROLE = 'global:dados-sensiveis'`).
+   - Operações customizadas em controllers usam `@Operation('<recurso>:<acao>')` para registro automático no `RolesCatalog` e sincronização com as tabelas `funcionalidades` e `funcionalidades_acoes`.
+8. **Auditoria, Soft-Delete e Índices Únicos Parciais**:
+   - Entidades usam soft-delete por padrão (`deleteMode: 'soft'`) e gravam o autor da alteração em `ultimoUsuarioId`.
+   - Índices de unicidade em entidades com soft-delete devem usar índices parciais (`where: '"deletedAt" IS NULL'`).
 
 ---
 
@@ -430,60 +443,259 @@ export class UsersController extends BaseCrudController {
 
 ---
 
+## 📖 Estudo de Caso Avançado: Módulo de Perfis (`perfis`) — Relações Aninhadas, `toJSON()` e Modal Customizado
+
+O módulo `perfis` demonstra como lidar com **relações muitos-para-muitos aninhadas** (`Perfil` → `FuncionalidadeAcao` → `Funcionalidade`), **getters computados serializados para JSON**, **sincronização de catálogo de permissões** e **customização avançada da tela genérica no frontend**.
+
+### 1. Entidade com Getters e `toJSON()`: [apps/backend/src/perfis/entities/perfil.entity.ts](file:///home/guiliano/workspace/ueg-arquitetura-20262/apps/backend/src/perfis/entities/perfil.entity.ts)
+
+> ⚠️ **Regra Crítica de Serialização**: Em TypeScript/JavaScript, getters declarados na classe (`get acaoIds()`, `get funcionalidades()`, `get roles()`) ficam no `prototype` e **não** são propriedades próprias enumeráveis (*enumerable own properties*). Sem o método `toJSON()`, o `JSON.stringify` do Express/NestJS omite esses campos na resposta HTTP.
+
+```typescript
+@Entity('perfis')
+@Index('IDX_perfis_nome_ativo', ['nome'], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
+export class Perfil extends BaseEntity {
+  @Column({ type: 'varchar', length: 100 })
+  nome!: string;
+
+  @Column({ type: 'boolean', default: true })
+  ativo!: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  sistema!: boolean;
+
+  @ManyToMany(() => FuncionalidadeAcao, { eager: false })
+  @JoinTable({
+    name: 'perfis_funcionalidades_acoes',
+    joinColumn: { name: 'perfil_id', referencedColumnName: 'id' },
+    inverseJoinColumn: {
+      name: 'funcionalidade_acao_id',
+      referencedColumnName: 'id',
+    },
+  })
+  acoes!: FuncionalidadeAcao[];
+
+  get acaoIds(): string[] {
+    return Array.isArray(this.acoes) ? this.acoes.map((a) => a.id) : [];
+  }
+
+  get funcionalidades(): string[] {
+    if (!Array.isArray(this.acoes)) return [];
+    const nomes = new Set<string>();
+    for (const a of this.acoes) {
+      if (a.funcionalidade?.nome) {
+        nomes.add(a.funcionalidade.nome);
+      }
+    }
+    return Array.from(nomes).sort();
+  }
+
+  get roles(): string[] {
+    if (!Array.isArray(this.acoes)) return [];
+    const list: string[] = [];
+    for (const a of this.acoes) {
+      if (a.funcionalidade?.nome && a.acao) {
+        list.push(`${a.funcionalidade.nome}:${a.acao}`);
+      }
+    }
+    return list.sort();
+  }
+
+  // Obrigatório para que JSON.stringify inclua os getters na resposta HTTP
+  toJSON(): Record<string, unknown> {
+    return Object.assign({}, this, {
+      acaoIds: this.acaoIds,
+      funcionalidades: this.funcionalidades,
+      roles: this.roles,
+    }) as unknown as Record<string, unknown>;
+  }
+}
+```
+
+### 2. Configuração com Relações Aninhadas e `relationInputFields`: [apps/backend/src/perfis/perfil.config.ts](file:///home/guiliano/workspace/ueg-arquitetura-20262/apps/backend/src/perfis/perfil.config.ts)
+
+- `relations: ['acoes', 'acoes.funcionalidade']`: Carrega a relação direta e a sub-relação tanto no `findOne` quanto no `findAll` (o `CrudService` encadeia automaticamente os `leftJoinAndSelect` por nível de caminho no `QueryBuilder`).
+- `relationInputFields: ['acaoIds']`: Impede que o `CrudService` tente atribuir `acaoIds` diretamente como coluna escalar no `update` (evitando `Property 'acaoIds' was not found in 'Perfil'`), delegando a persistência para o método `syncRelations`.
+
+```typescript
+export const perfilCrudConfig: CrudConfig<
+  Perfil,
+  CreatePerfilDto,
+  UpdatePerfilDto
+> = {
+  resource: 'perfis',
+  entity: Perfil,
+  createDto: CreatePerfilDto,
+  updateDto: UpdatePerfilDto,
+  deleteMode: 'soft',
+  sortable: ['nome', 'ativo', 'createdAt'],
+  relations: ['acoes', 'acoes.funcionalidade'],
+  relationInputFields: ['acaoIds'],
+  filters: {
+    nome: {
+      type: 'string',
+      label: 'Nome',
+      controlType: 'text',
+      defaultOperator: 'like',
+      quickFilter: true,
+      placeholder: 'Buscar perfil...',
+      operators: ['eq', 'like'],
+    },
+    ativo: {
+      type: 'boolean',
+      label: 'Status',
+      controlType: 'boolean',
+      defaultOperator: 'eq',
+      quickFilter: true,
+      operators: ['eq'],
+    },
+  },
+};
+```
+
+---
+
+## 🖥️ Integração com o Frontend (`GenericCrudPageComponent` e Extensões)
+
+No frontend Angular (`apps/frontend`), as páginas CRUD utilizam o `GenericCrudPageComponent` configurado via `CrudPageConfig<E>`:
+
+### 1. Propriedades de Configuração (`CrudPageConfig<E>`)
+
+| Propriedade | Tipo | Quando usar |
+| :--- | :--- | :--- |
+| `title` / `subtitle` | `string` | Título e subtítulo do cabeçalho da página. |
+| `resource` | `string` | Nome do recurso (usado para verificar permissões `<resource>:create`, `<resource>:update`, `<resource>:delete`). |
+| `entityLabel` | `string` | Rótulo singular da entidade (ex: `'Perfil'`, `'Categoria'`). |
+| `service` | `GenericCrudService<E>` | Serviço HTTP do recurso estendendo `GenericCrudService`. |
+| `columns` | `TableColumnDef<E>[]` | Definição das colunas da tabela (`text`, `boolean`, `badge`, `badge-list`, `date`). |
+| `extraActions` | `CrudRowAction<E>[]` | Ações adicionais por linha na coluna de ações (ex: "Aprovar", "Redefinir Senha"). |
+| `headerActions` | `CrudHeaderAction[]` | Botões globais no cabeçalho ao lado do botão de criação, com suporte a `permission`, `loading: () => boolean` e `handler`. |
+| `customModalComponent` | `Type<unknown>` | Substitui o formulário dinâmico padrão por um componente modal customizado para criação/edição/visualização. |
+| `isRowReadOnly` | `(row: E) => boolean` | Quando retorna `true` (ex: `row.sistema`), mantém o botão Editar visível, mas abre o modal em modo somente leitura (`readOnly: true`). |
+| `canDeleteRow` | `(row: E) => boolean` | Controla se o botão Excluir pode ser acionado para a linha (ex: `(row) => !row.sistema`). |
+
+### 2. Exemplo de Página com `headerActions`, `customModalComponent` e `isRowReadOnly`: [apps/frontend/src/app/pages/perfis/perfis-page.component.ts](file:///home/guiliano/workspace/ueg-arquitetura-20262/apps/frontend/src/app/pages/perfis/perfis-page.component.ts)
+
+```typescript
+readonly pageConfig: CrudPageConfig<PerfilDto> = {
+  title: 'Gestão de Perfis',
+  subtitle: 'Gerencie os perfis de acesso e suas funcionalidades vinculadas.',
+  entityLabel: 'Perfil',
+  resource: 'perfis',
+  service: this.perfisService,
+  customModalComponent: PerfilFormModalComponent,
+  isRowReadOnly: (row) => row.sistema,
+  canDeleteRow: (row) => !row.sistema,
+  headerActions: [
+    {
+      id: 'sync-roles',
+      label: 'Sincronizar Permissões',
+      variant: 'outline',
+      permission: 'perfis:sync',
+      loading: () => this.syncing(),
+      handler: () => this.onSyncRoles(),
+    },
+  ],
+  columns: [
+    { key: 'nome', label: 'Nome do Perfil', sortable: true, type: 'text' },
+    {
+      key: 'funcionalidades',
+      label: 'Funcionalidades',
+      type: 'badge-list',
+      badgeVariant: 'secondary',
+      formatter: (_val, row) => (row.funcionalidades ?? []).slice(0, 10),
+    },
+    { key: 'sistema', label: 'Tipo', type: 'badge' },
+    { key: 'ativo', label: 'Status', sortable: true, type: 'boolean' },
+  ],
+};
+```
+
+### 3. Boas Práticas em Modais Customizados (`customModalComponent`)
+
+Ao criar um componente para `customModalComponent` (ex: `PerfilFormModalComponent`):
+- Injete os dados do modal via `readonly data = inject<ModalData>(UI_DIALOG_DATA)` e a referência via `inject(UiCdkDialogRef)`.
+- Para inicializar IDs de relacionamentos em modo de edição, faça leitura resiliente aceitando tanto o array de IDs (`initialData?.acaoIds`) quanto o array de entidades relacionais (`initialData?.acoes?.map(a => a.id)`):
+  ```typescript
+  readonly selectedAcaoIds = signal<Set<string>>(
+    new Set<string>(
+      this.data.initialData?.acaoIds ??
+        (this.data.initialData?.acoes ?? []).map((a: { id: string }) => a.id),
+    ),
+  );
+  ```
+- Quando `this.data.readOnly` for `true`, desabilite todos os controles de edição e oculte o botão de salvar.
+
+---
+
+## ⚠️ Armadilhas Comuns e Como Evitá-las (Gotchas)
+
+1. **`Property '<campoId>' was not found in '<Entidade>'` ao atualizar**:
+   - **Causa**: O DTO possui um campo de relação (ex: `acaoIds` ou `perfilIds`), mas ele não foi listado em `relationInputFields` no `<entidade>.config.ts`.
+   - **Solução**: Adicione `relationInputFields: ['<campoId>']` no `CrudConfig` e implemente `syncRelations` no service.
+2. **`TypeORMError: Relation with property path x.y in entity was not found` no `findAll`**:
+   - **Causa**: Relações aninhadas com ponto precisam encadear o join a partir do alias pai no `QueryBuilder`.
+   - **Solução**: Configure `relations: ['x', 'x.y']` no `CrudConfig` e **sempre escreva um teste chamando `service.findAll({}, user)`** no `<recurso>.service.spec.ts`.
+3. **Getters da Entidade ausentes no JSON do Frontend**:
+   - **Causa**: Getters em classes TypeScript não são enumeráveis na instância e o `JSON.stringify` os ignora. E nunca faça `entity.meuGetter = valor` se não houver `set`, pois lançará `TypeError: Cannot set property ... which has only a getter`.
+   - **Solução**: Implemente `toJSON()` na entidade incluindo explicitamente os getters desejados.
+4. **Perda de Getters após `MaskService`**:
+   - **Causa**: Clonar uma entidade com `{ ...entity }` remove seu prototype.
+   - **Solução**: O `MaskService` já utiliza `Object.assign(Object.create(Object.getPrototypeOf(entity)), entity)` para preservar o prototype, getters e `toJSON()`.
+
+---
+
 ## 🛠️ Passo a Passo para Criar um Novo Caso de Uso
 
 ### Passo 1: Modelar a Entidade
-- Crie `src/<recurso>/entities/<entidade>.entity.ts`.
-- Estenda `BaseEntity` de `../common/crud/base.entity`.
-- Decore campos com `@ApiProperty()` e decorators TypeORM.
+- Crie `src/<recurso>/entities/<entidade>.entity.ts` estendendo `BaseEntity`.
+- Decore campos com `@ApiProperty()`, decorators TypeORM e `@Masked()` se houver dados sensíveis (protegidos por `SENSITIVE_DATA_ROLE = 'global:dados-sensiveis'`).
+- Se houver getters computados necessários no frontend, implemente `toJSON()`.
 
 ### Passo 2: Definir DTOs
 - Crie `src/<recurso>/dto/<entidade>.dto.ts`.
-- Crie `Create<Entidade>Dto` com validações (`class-validator`).
-- Crie `Update<Entidade>Dto extends PartialType(Create<Entidade>Dto)` com campo obrigatório:
-  ```typescript
-  @ApiProperty({ description: 'Versão para concorrência otimista', example: 1 })
-  @IsInt()
-  @IsNotEmpty()
-  version: number;
-  ```
+- Crie `Create<Entidade>Dto` com validações (`class-validator`) e `@FormFieldMeta(...)` para geração automática de formulários.
+- Crie `Update<Entidade>Dto` usando `createUpdateDto(Create<Entidade>Dto)` (que adiciona `@IsInt() version!: number`).
 
 ### Passo 3: Criar `<entidade>.config.ts`
 - Exporte `<entidade>CrudConfig: CrudConfig<Entidade, CreateDto, UpdateDto>`.
-- Configure `resource`, `entity`, `createDto`, `updateDto`, `deleteMode` (`'soft'`), `sortable` e `filters`.
+- Configure `resource`, `entity`, `createDto`, `updateDto`, `deleteMode` (`'soft'`), `relations`, `relationInputFields`, `sortable` e `filters`.
 
 ### Passo 4: Implementar o Service
 - Crie `src/<recurso>/<recurso>.service.ts` estendendo `CrudService<Entidade, CreateDto, UpdateDto>`.
 - Passe `super(deps, <entidade>CrudConfig)`.
-- Adicione hooks registrando **apenas** métodos privados nomeados (`validar...`, `preparar...`, `apos...`).
+- Adicione hooks registrando **apenas** métodos privados nomeados (`validar...`, `preparar...`, `invalidar...`).
+- Ao lançar `BusinessException` relativa a um campo, passe o nome do campo como 4º argumento.
 - Sobrescreva `syncRelations` se houver relacionamentos muitos-para-muitos.
 
 ### Passo 5: Implementar o Controller
 - Crie `src/<recurso>/<recurso>.controller.ts`.
 - Instancie `BaseCrudController = createCrudController(<entidade>CrudConfig)`.
 - Adicione decorators `@ApiBearerAuth('JWT-auth')`, `@ApiTags('<recurso>')`, `@Controller('<recurso>')`.
-- Adicione rotas customizadas se necessário decoradas com `@Operation('<recurso>:<acao>')`.
+- Adicione rotas customizadas se necessário decoradas com `@Operation('<recurso>:<acao>')` (respeitando o formato `^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$`).
 
 ### Passo 6: Registrar no Module e AppModule
 - Crie `src/<recurso>/<recurso>.module.ts` importando `TypeOrmModule.forFeature([Entidade])`.
 - Registre o módulo em `app.module.ts`.
 
 ### Passo 7: Criar a Migration TypeORM
-- Gere e aplique a migration versionada:
-  ```bash
-  export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && export PNPM_HOME="/home/guiliano/.local/share/pnpm" && export PATH="$PNPM_HOME:$PATH"
-  pnpm --filter backend migration:generate src/database/migrations/<NomeDaMigration>
-  pnpm --filter backend migration:run
-  ```
+- Crie a migration versionada em `src/database/migrations/` (usando índices parciais `WHERE "deletedAt" IS NULL` para colunas únicas com soft-delete) e valide em `migrations.integration.spec.ts`.
 
-### Passo 8: Escrever Testes Unitários (TDD)
-- Crie `src/<recurso>/<recurso>.service.spec.ts`.
-- Cubra:
-  - Criação de entidade e validação da versão inicial (1).
-  - Validações de hooks (ex: unicidade, erros de negócio lançando `BusinessException`).
-  - Concorrência otimista (conflito ao enviar versão desatualizada).
-  - Soft-delete e reuso de valores únicos após soft-delete (se aplicável).
-  - Mascaramento de dados e restrições de roles (se aplicável).
+### Passo 8: Criar Service e Página no Frontend (se aplicável)
+- Crie `<recurso>.service.ts` estendendo `GenericCrudService<EntidadeDto>`.
+- Crie `<recurso>-page.component.ts` configurando `<app-generic-crud-page [config]="pageConfig" />` (usando `headerActions`, `customModalComponent`, `isRowReadOnly` ou `canDeleteRow` quando necessário).
+
+### Passo 9: Escrever Testes Unitários e de Integração (TDD)
+- Crie `src/<recurso>/<recurso>.service.spec.ts` no backend e `<recurso>-page.component.spec.ts` no frontend.
+- Cubra obrigatoriamente:
+  - `create`, `findOne`, **`findAll`** (essencial para validar joins de `relations` no `QueryBuilder`), `update` e `remove`.
+  - Validações de hooks lançando `BusinessException` com código e `field`.
+  - Concorrência otimista (`version`).
+  - Soft-delete e reuso de valores únicos após soft-delete.
+  - Serialização de getters (`toJSON()`) e mascaramento de dados sensíveis (`global:dados-sensiveis`).
 
 ---
 
@@ -492,11 +704,15 @@ export class UsersController extends BaseCrudController {
 Antes de concluir qualquer caso de uso, valide os seguintes pontos:
 
 - [ ] A configuração está em arquivo separado `<entidade>.config.ts` e é reutilizada no controller e service.
-- [ ] Nenhum hook no service possui lógica de validação em função inline anônima; todos utilizam métodos privados nomeados.
-- [ ] Erros de validação e negócio disparam `BusinessException` com código em `UPPER_SNAKE_CASE`.
-- [ ] DTO de atualização exige `@IsInt() version: number`.
-- [ ] Não há uso do tipo `any` em nenhuma tipagem.
+- [ ] Campos de relação nos DTOs estão listados em `relationInputFields` no `<entidade>.config.ts` e tratados em `syncRelations`.
+- [ ] Entidades com getters computados implementam `toJSON()` para garantir serialização nas respostas HTTP.
+- [ ] Nenhum hook no service possui lógica inline anônima; todos delegam para métodos privados nomeados.
+- [ ] Erros de validação e negócio disparam `BusinessException` com código em `UPPER_SNAKE_CASE` e o 4º parâmetro `field` quando aplicável.
+- [ ] Todas as roles seguem o formato `<funcionalidade>:<acao>` ou `global:<acao>`.
+- [ ] DTO de atualização utiliza `createUpdateDto` ou exige `@IsInt() version!: number`.
+- [ ] Não há uso do tipo `any` em nenhuma tipagem (backend, frontend e utils).
 - [ ] DTOs e endpoints possuem anotações OpenAPI/Swagger.
-- [ ] Testes unitários cobrem 100% dos hooks e fluxos de sucesso e erro.
-- [ ] `pnpm --filter backend typecheck` e `pnpm --filter backend lint` rodam sem erros.
+- [ ] Testes cobrem 100% dos hooks, `findAll` com relações, fluxos de sucesso e erro.
+- [ ] `typecheck`, `lint`, `test` e `build` rodam sem erros em todo o monorepo.
+
 
