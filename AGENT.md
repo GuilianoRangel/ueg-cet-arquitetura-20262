@@ -52,3 +52,25 @@ As principais skills ativadas são:
 > 6. **Proibição Estrita do Tipo `any`**: O agente NÃO deve utilizar o tipo `any` no TypeScript em nenhuma assinatura, retorno, método ou variável do monorepo, a menos que seja explicitamente orientado pelo usuário a fazê-lo.
 > 7. **Padrão Obrigatório de Hooks no CRUD Genérico**: Ao implementar ou estender serviços baseados em `CrudService`, todo e qualquer hook ou validador (`addValidator`, `addBeforeHook`, `addAfterHook`, `addAfterCommitHook`) DEVE ser obrigatoriamente implementado como um método privado dedicado com nome descritivo (ex: `validarEmailUnicoCreate`, `prepararDadosCriacao`, `validarProtecaoUltimoAdmin`). É terminantemente proibido manter lógicas anônimas ou inline extensas no construtor; o construtor deve apenas delegar para o método nomeado (`this.addValidator('create', (ctx) => this.validarEmailUnicoCreate(ctx));`). Além disso, as configurações de CRUD (`CrudConfig`) devem ser isoladas em arquivo próprio (`<entidade>.config.ts`) reutilizado entre o service e o controller.
 > 8. Use as *Skills* ativas (como design frontend de alta qualidade, generic-crud-usecase e TDD) a seu favor para alinhar suas entregas com a expectativa profissional do usuário.
+
+---
+
+## 🧭 Navegação Lateral (`app-sidebar`) e Construção de Menus
+
+O menu lateral da aplicação (`apps/frontend/src/app/core/components/sidebar/app-sidebar.component.ts`) é **100% orientado por dados** (sem links ou SVGs *hardcoded* em `app.html`).
+
+- **Arquivo de configuração**: `apps/frontend/src/app/core/components/sidebar/sidebar-menu.config.ts` (`SIDEBAR_MENU_ITEMS: SidebarMenuItem[]`).
+- **Estrutura de cada item (`SidebarMenuItem`)**:
+  - `id` (`string`, obrigatório): identificador único do item/grupo.
+  - `label` (`string`, obrigatório): título exibido no menu, no *tooltip* (quando recolhido) e no *flyout* de submenus.
+  - `icon` (`SidebarIconName`, opcional): nome tipado de ícone mapeado em `SidebarIconComponent` (`apps/frontend/src/app/core/components/sidebar/sidebar-icon.component.ts`). Para adicionar um novo ícone, inclua o nome em `SidebarIconName` e o `@case` SVG correspondente em `SidebarIconComponent`.
+  - `route` (`string`, opcional): rota Angular (ex.: `'/filmes'`). Omitir em grupos que apenas agrupam `children`.
+  - `exact` (`boolean`, opcional): define `routerLinkActiveOptions.exact` (padrão `false`).
+  - `roles` (`string[]`, opcional) e `roleMatch` (`'any' | 'all'`, padrão `'any'`): permissões necessárias. Itens sem `roles` são visíveis a qualquer usuário autenticado; **grupos pai cujos filhos não sejam permitidos para o usuário são ocultados automaticamente**.
+  - `badge` (`string`, opcional): selo textual exibido ao lado do rótulo.
+  - `children` (`SidebarMenuItem[]`, opcional): lista recursiva de subitens (suporta aninhamento pai/filho/neto).
+- **Comportamento responsivo e persistência**:
+  - O botão de alternância fica em `app-header` (`showSidebarToggle` ativo apenas quando autenticado).
+  - No **desktop (`>= 768px`)**, recolher o sidebar ativa o modo *mini-rail* (apenas ícones, com *tooltip* no hover para links diretos e *flyout* flutuante no hover/clique para grupos com filhos), persistindo o estado em `localStorage` (`ueg_sidebar_collapsed`).
+  - No **mobile (`< 768px`)**, o mesmo botão abre/fecha o *drawer* lateral sobreposto.
+
