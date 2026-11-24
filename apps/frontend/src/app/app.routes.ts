@@ -8,6 +8,7 @@ import { AccessDeniedComponent } from './pages/access-denied/access-denied.compo
 import { UsersListComponent } from './pages/admin/users-list.component';
 import { CategoriasPageComponent } from './pages/categorias/categorias-page.component';
 import { PerfisPageComponent } from './pages/perfis/perfis-page.component';
+import { FilmesPageComponent } from './pages/filmes/filmes-page.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { authGuard, roleGuard } from './core/auth/auth.guard';
 import { AuthService } from './core/auth/auth.service';
@@ -37,6 +38,11 @@ export const routes: Routes = [
     path: 'categorias',
     component: CategoriasPageComponent,
     canActivate: [authGuard, roleGuard('categorias:read')],
+  },
+  {
+    path: 'filmes',
+    component: FilmesPageComponent,
+    canActivate: [authGuard, roleGuard('filmes:read')],
   },
   {
     path: 'dashboard',

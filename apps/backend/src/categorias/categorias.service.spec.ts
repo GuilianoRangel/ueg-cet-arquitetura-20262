@@ -6,6 +6,7 @@ import { User } from '../users/entities/user.entity';
 import { Perfil } from '../perfis/entities/perfil.entity';
 import { Funcionalidade } from '../perfis/entities/funcionalidade.entity';
 import { FuncionalidadeAcao } from '../perfis/entities/funcionalidade-acao.entity';
+import { Filme } from '../filmes/entities/filme.entity';
 import { TransactionRunner } from '../common/crud/transaction-runner';
 import { MaskService } from '../common/crud/masking/mask.service';
 import { PermissionsService } from '../auth/permissions/permissions.service';
@@ -57,7 +58,14 @@ describe('CategoriasService', () => {
       type: 'sqlite',
       database: ':memory:',
       synchronize: true,
-      entities: [Categoria, User, Perfil, Funcionalidade, FuncionalidadeAcao],
+      entities: [
+        Categoria,
+        User,
+        Perfil,
+        Funcionalidade,
+        FuncionalidadeAcao,
+        Filme,
+      ],
       logging: false,
     });
     await dataSource.initialize();
@@ -270,5 +278,56 @@ describe('CategoriasService', () => {
     await expect(
       pipe.transform({ nome: 'Invalido', valor: 10.5 }),
     ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('should throw 409 CATEGORIA_IN_USE when attempting to remove a categoria linked to active filmes', async () => {
+    const cat = await service.create(
+      { nome: 'Ficção Científica' },
+      defaultUser,
+    );
+
+    const filmeRepo = dataSource.getRepository(Filme);
+    const filme = filmeRepo.create({
+      titulo: 'Interestelar',
+      ano: 2014,
+      diretor: 'Christopher Nolan',
+      duracao: 169,
+      sinopse: '<p>Sinopse</p>',
+      generos: ['Ficção Científica'],
+      ativo: true,
+      categorias: [{ id: cat.id }],
+    });
+    await filmeRepo.save(filme);
+
+    await expectAsyncBusinessError(
+      service.remove(cat.id, cat.version, defaultUser),
+      'CATEGORIA_IN_USE',
+    );
+  });
+
+  it('should throw 409 CATEGORIA_IN_USE when attempting to inactivate (ativo: false) a categoria linked to active filmes', async () => {
+    const cat = await service.create(
+      { nome: 'Ação e Aventura', ativo: true },
+      defaultUser,
+    );
+
+    const filmeRepo = dataSource.getRepository(Filme);
+    const filme = filmeRepo.create({
+      titulo: 'Mad Max',
+      ano: 2015,
+      diretor: 'George Miller',
+      duracao: 120,
+      sinopse: '<p>Sinopse</p>',
+      generos: ['Ação'],
+      ativo: true,
+      categorias: [{ id: cat.id }],
+    });
+    await filmeRepo.save(filme);
+
+    await expectAsyncBusinessError(
+      service.update(cat.id, { ativo: false, version: 1 }, defaultUser),
+      'CATEGORIA_IN_USE',
+      'ativo',
+    );
   });
 });

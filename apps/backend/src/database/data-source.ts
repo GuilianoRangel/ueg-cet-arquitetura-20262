@@ -5,11 +5,19 @@ import { Perfil } from '../perfis/entities/perfil.entity';
 import { Funcionalidade } from '../perfis/entities/funcionalidade.entity';
 import { FuncionalidadeAcao } from '../perfis/entities/funcionalidade-acao.entity';
 import { Categoria } from '../categorias/entities/categoria.entity';
+import { Filme } from '../filmes/entities/filme.entity';
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'sqlite',
   database: process.env.DATABASE_NAME || 'database.sqlite',
-  entities: [User, Perfil, Funcionalidade, FuncionalidadeAcao, Categoria],
+  entities: [
+    User,
+    Perfil,
+    Funcionalidade,
+    FuncionalidadeAcao,
+    Categoria,
+    Filme,
+  ],
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
   synchronize: false,
   migrationsRun: true,

@@ -12,6 +12,7 @@ import { PermissionsModule } from './auth/permissions/permissions.module';
 import { CrudModule } from './common/crud/crud.module';
 import { PerfisModule } from './perfis/perfis.module';
 import { CategoriasModule } from './categorias/categorias.module';
+import { FilmesModule } from './filmes/filmes.module';
 import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
@@ -26,6 +27,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     CrudModule,
     PerfisModule,
     CategoriasModule,
+    FilmesModule,
     UsersModule,
     AuthModule,
     MailerModule,

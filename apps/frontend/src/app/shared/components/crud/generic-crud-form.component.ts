@@ -27,11 +27,17 @@ import { FormErrorHandlerService } from '../../../core/errors/form-error-handler
 import { withSkipGlobalLoading } from '../../../core/loading/loading.service';
 import { ButtonComponent } from '../ui/button.component';
 import { InputComponent } from '../ui/input.component';
+import { UiRichTextEditorComponent } from '../ui/rich-text-editor.component';
 
 @Component({
   selector: 'app-generic-crud-form',
   standalone: true,
-  imports: [ReactiveFormsModule, InputComponent, ButtonComponent],
+  imports: [
+    ReactiveFormsModule,
+    InputComponent,
+    ButtonComponent,
+    UiRichTextEditorComponent,
+  ],
   templateUrl: './generic-crud-form.component.html',
   styleUrl: './generic-crud-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -78,6 +78,7 @@ export type FormInputType =
   | "select"
   | "multiselect"
   | "date"
+  | "richtext"
   | "hidden";
 
 export interface FormFieldValidationRule {

@@ -6,6 +6,7 @@ import { Categoria } from './entities/categoria.entity';
 import { CreateCategoriaDto, UpdateCategoriaDto } from './dto/categoria.dto';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { categoriaCrudConfig } from './categoria.config';
+import { Filme } from '../filmes/entities/filme.entity';
 
 @Injectable()
 export class CategoriasService extends CrudService<
@@ -21,6 +22,14 @@ export class CategoriasService extends CrudService<
 
     this.addValidator('update', async (ctx) =>
       this.validarNomeUnicoUpdate(ctx),
+    );
+
+    this.addValidator('update', (ctx) =>
+      this.validarCategoriaSemFilmesInativacao(ctx),
+    );
+
+    this.addValidator('remove', (ctx) =>
+      this.validarCategoriaSemFilmesRemove(ctx),
     );
   }
 
@@ -65,6 +74,66 @@ export class CategoriasService extends CrudService<
         'CATEGORIA_NOME_EXISTS',
         HttpStatus.CONFLICT,
         'nome',
+      );
+    }
+  }
+
+  private async validarCategoriaSemFilmesRemove(
+    ctx: CrudContext<Categoria, never>,
+  ): Promise<void> {
+    const categoriaId = ctx.id;
+    if (!categoriaId) return;
+
+    const count = await ctx.manager
+      .getRepository(Filme)
+      .createQueryBuilder('filme')
+      .innerJoin(
+        'filme.categorias',
+        'categoria',
+        'categoria.id = :categoriaId',
+        { categoriaId },
+      )
+      .where('filme.deletedAt IS NULL')
+      .getCount();
+
+    if (count > 0) {
+      throw new BusinessException(
+        'Não é possível excluir uma categoria vinculada a filmes ativos',
+        'CATEGORIA_IN_USE',
+        HttpStatus.CONFLICT,
+      );
+    }
+  }
+
+  private async validarCategoriaSemFilmesInativacao(
+    ctx: CrudContext<Categoria, UpdateCategoriaDto>,
+  ): Promise<void> {
+    if (ctx.input.ativo !== false) return;
+    const existing = ctx.existing;
+    if (existing && !existing.ativo) {
+      return;
+    }
+    const categoriaId = existing ? existing.id : ctx.id;
+    if (!categoriaId) return;
+
+    const count = await ctx.manager
+      .getRepository(Filme)
+      .createQueryBuilder('filme')
+      .innerJoin(
+        'filme.categorias',
+        'categoria',
+        'categoria.id = :categoriaId',
+        { categoriaId },
+      )
+      .where('filme.deletedAt IS NULL')
+      .getCount();
+
+    if (count > 0) {
+      throw new BusinessException(
+        'Não é possível inativar uma categoria vinculada a filmes ativos',
+        'CATEGORIA_IN_USE',
+        HttpStatus.CONFLICT,
+        'ativo',
       );
     }
   }

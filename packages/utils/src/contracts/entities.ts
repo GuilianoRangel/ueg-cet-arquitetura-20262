@@ -36,3 +36,38 @@ export interface UserDto {
 export interface UserRolesResponse {
   roles: string[];
 }
+
+export const FILME_GENEROS = [
+  "Ação",
+  "Aventura",
+  "Animação",
+  "Comédia",
+  "Crime",
+  "Documentário",
+  "Drama",
+  "Fantasia",
+  "Ficção Científica",
+  "Musical",
+  "Romance",
+  "Suspense",
+  "Terror",
+] as const;
+
+export type FilmeGenero = (typeof FILME_GENEROS)[number];
+
+export interface FilmeDto {
+  id: string;
+  titulo: string;
+  ano: number;
+  diretor: string;
+  duracao: number;
+  sinopse: string;
+  generos: string[];
+  ativo: boolean;
+  categorias: CategoriaDto[];
+  categoriaIds: string[];
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  ultimoUsuarioId: string | null;
+}

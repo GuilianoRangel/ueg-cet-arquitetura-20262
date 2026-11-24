@@ -29,6 +29,8 @@ const FIELD_CODE_FALLBACK_MAP: Record<string, string> = {
   PERFIL_NOME_EXISTS: 'nome',
   USER_PERFIL_INVALID: 'perfilIds',
   PERFIL_ROLE_INVALID: 'roles',
+  FILME_TITULO_ANO_EXISTS: 'titulo',
+  FILME_CATEGORIA_INVALID: 'categoriaIds',
 };
 
 @Injectable({

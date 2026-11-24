@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -343,6 +344,57 @@ describe('GenericCrudFormComponent', () => {
     expect(banner?.textContent).toContain(
       'Não é possível inativar ou remover o único administrador ativo do sistema',
     );
+  });
+
+  it('should render ui-rich-text-editor when field inputType is richtext and include its HTML value in formSubmit payload', () => {
+    const filmeSchema: CrudFormSchemaDto = {
+      mode: 'create',
+      fields: [
+        {
+          name: 'titulo',
+          label: 'Título',
+          inputType: 'text',
+          required: true,
+          order: 1,
+          hidden: false,
+          readOnly: false,
+          validations: [{ type: 'required' }],
+        },
+        {
+          name: 'sinopse',
+          label: 'Sinopse',
+          inputType: 'richtext',
+          required: true,
+          order: 2,
+          hidden: false,
+          readOnly: false,
+          validations: [{ type: 'required' }],
+        },
+      ],
+    };
+
+    fixture.componentRef.setInput('schema', filmeSchema);
+    fixture.detectChanges();
+
+    const editorEl = fixture.debugElement.query(By.css('ui-rich-text-editor'));
+    expect(editorEl).toBeTruthy();
+
+    let submittedData: Record<string, unknown> | null = null;
+    component.formSubmit.subscribe((data) => {
+      submittedData = data;
+    });
+
+    component.form.get('titulo')?.setValue('Interestelar');
+    component.form.get('sinopse')?.setValue('<p>Sinopse Interestelar</p>');
+    fixture.detectChanges();
+
+    component.onSubmit();
+    fixture.detectChanges();
+
+    expect(submittedData).toEqual({
+      titulo: 'Interestelar',
+      sinopse: '<p>Sinopse Interestelar</p>',
+    });
   });
 });
 

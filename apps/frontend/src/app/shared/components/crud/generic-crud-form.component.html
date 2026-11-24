@@ -141,6 +141,16 @@
             }
           }
 
+          @case ('richtext') {
+            <ui-rich-text-editor
+              [id]="'ctrl-' + field.name"
+              [label]="field.label + (field.required ? ' *' : '')"
+              [placeholder]="field.placeholder || ''"
+              [formControlName]="field.name"
+              [error]="getControlErrorMessage(field.name)"
+            ></ui-rich-text-editor>
+          }
+
           @default {
             <ui-input
               [id]="'ctrl-' + field.name"

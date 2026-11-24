@@ -15,4 +15,3 @@ export interface RolesSyncResultDto {
   removedActions: number;
   totalActiveActions: number;
 }
-

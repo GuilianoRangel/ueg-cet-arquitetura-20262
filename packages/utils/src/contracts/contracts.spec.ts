@@ -16,6 +16,8 @@ import {
   FuncionalidadeAcaoDto,
   FuncionalidadeGroupDto,
   RolesSyncResultDto,
+  FILME_GENEROS,
+  FilmeDto,
 } from "../index";
 
 describe("Contracts", () => {
@@ -216,5 +218,68 @@ describe("Contracts", () => {
     expect(group.nome).toBe("categorias");
     expect(group.acoes[0].role).toBe("categorias:create");
     expect(syncResult.totalActiveActions).toBe(15);
+  });
+
+  it("should export FILME_GENEROS with predefined movie genres and validate FilmeDto shape", () => {
+    expect(FILME_GENEROS).toContain("Ação");
+    expect(FILME_GENEROS).toContain("Drama");
+    expect(FILME_GENEROS).toContain("Ficção Científica");
+    expect(FILME_GENEROS.length).toBe(13);
+
+    const filme: FilmeDto = {
+      id: "123e4567-e89b-12d3-a456-426614174000",
+      titulo: "Interestelar",
+      ano: 2014,
+      diretor: "Christopher Nolan",
+      duracao: 169,
+      sinopse:
+        "<p>Uma equipe de exploradores viaja através de um buraco de minhoca no espaço.</p>",
+      generos: ["Ficção Científica", "Drama"],
+      ativo: true,
+      categorias: [
+        {
+          id: "123e4567-e89b-12d3-a456-426614174001",
+          nome: "Sci-Fi",
+          ativo: true,
+          valor: null,
+          version: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ultimoUsuarioId: null,
+        },
+      ],
+      categoriaIds: ["123e4567-e89b-12d3-a456-426614174001"],
+      version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ultimoUsuarioId: null,
+    };
+
+    expect(filme.titulo).toBe("Interestelar");
+    expect(filme.categoriaIds).toEqual([
+      "123e4567-e89b-12d3-a456-426614174001",
+    ]);
+    expect(filme.generos).toEqual(["Ficção Científica", "Drama"]);
+  });
+
+  it("should include CATEGORIA_IN_USE, FILME_TITULO_ANO_EXISTS and FILME_CATEGORIA_INVALID in ERROR_CODES", () => {
+    expect(ERROR_CODES.CATEGORIA_IN_USE).toBe("CATEGORIA_IN_USE");
+    expect(ERROR_CODES.FILME_TITULO_ANO_EXISTS).toBe("FILME_TITULO_ANO_EXISTS");
+    expect(ERROR_CODES.FILME_CATEGORIA_INVALID).toBe("FILME_CATEGORIA_INVALID");
+  });
+
+  it("should support richtext as a valid FormInputType in CrudFormFieldSchema", () => {
+    const field: CrudFormFieldSchema = {
+      name: "sinopse",
+      label: "Sinopse",
+      inputType: "richtext",
+      required: true,
+      order: 7,
+      hidden: false,
+      readOnly: false,
+      validations: [{ type: "required" }],
+    };
+
+    expect(field.inputType).toBe("richtext");
   });
 });
