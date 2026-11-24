@@ -1,0 +1,226 @@
+@if (mobileOpen()) {
+  <div
+    class="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-xs md:hidden"
+    (click)="closeMobile.emit()"
+  ></div>
+}
+
+<aside [class]="asideClasses()" aria-label="Menu lateral">
+  <!-- Mobile header inside drawer -->
+  <div class="flex h-14 shrink-0 items-center justify-between border-b border-border px-4 md:hidden">
+    <span class="font-bold text-primary">Menu</span>
+    <button
+      type="button"
+      (click)="closeMobile.emit()"
+      class="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      aria-label="Fechar menu"
+    >
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Menu Items -->
+  <nav
+    class="flex-1 py-3"
+    [class.overflow-y-auto]="!collapsed()"
+    [class.overflow-visible]="collapsed()"
+    [class.px-3]="!collapsed()"
+    [class.px-2]="collapsed()"
+  >
+    <ul class="flex flex-col gap-1">
+      @for (item of visibleMenuItems(); track item.id) {
+        @if (collapsed()) {
+          <!-- Collapsed Mini-Rail Item (Icon only + Hover Tooltip / Flyout) -->
+          <li
+            class="relative"
+            [attr.data-testid]="'sidebar-item-' + item.id"
+            (mouseenter)="onCollapsedItemEnter(item.id)"
+            (mouseleave)="onCollapsedItemLeave(item.id)"
+          >
+            @if (item.children?.length) {
+              <button
+                type="button"
+                [attr.data-testid]="'sidebar-group-' + item.id"
+                [attr.aria-label]="item.label"
+                (click)="onCollapsedParentClick(item.id)"
+                class="flex h-10 w-full items-center justify-center rounded-lg transition-colors cursor-pointer"
+                [class.bg-primary/10]="hasActiveDescendant(item)"
+                [class.text-primary]="hasActiveDescendant(item)"
+                [class.text-muted-foreground]="!hasActiveDescendant(item)"
+                [class.hover:bg-muted]="!hasActiveDescendant(item)"
+                [class.hover:text-foreground]="!hasActiveDescendant(item)"
+              >
+                <app-sidebar-icon [name]="item.icon ?? 'folder'" svgClass="h-5 w-5 shrink-0" />
+              </button>
+
+              @if (hoveredCollapsedItemId() === item.id) {
+                <div
+                  [attr.data-testid]="'sidebar-flyout-' + item.id"
+                  class="absolute left-full top-0 z-50 ml-2 min-w-52 rounded-xl border border-border bg-card p-2 text-card-foreground shadow-lg"
+                >
+                  <div class="px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border mb-1">
+                    {{ item.label }}
+                  </div>
+                  <ng-container
+                    [ngTemplateOutlet]="flyoutNodes"
+                    [ngTemplateOutletContext]="{ items: item.children }"
+                  ></ng-container>
+                </div>
+              }
+            } @else {
+              <a
+                [routerLink]="item.route"
+                routerLinkActive="bg-primary/10 text-primary"
+                [routerLinkActiveOptions]="{ exact: !!item.exact }"
+                [attr.aria-label]="item.label"
+                (click)="onLeafClick()"
+                class="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <app-sidebar-icon [name]="item.icon ?? 'folder'" svgClass="h-5 w-5 shrink-0" />
+              </a>
+
+              @if (hoveredCollapsedItemId() === item.id) {
+                <div
+                  [attr.data-testid]="'sidebar-tooltip-' + item.id"
+                  role="tooltip"
+                  class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-md"
+                >
+                  {{ item.label }}
+                </div>
+              }
+            }
+          </li>
+        } @else {
+          <!-- Expanded Mode (Recursive Tree) -->
+          <ng-container
+            [ngTemplateOutlet]="expandedNode"
+            [ngTemplateOutletContext]="{ item: item, depth: 0 }"
+          ></ng-container>
+        }
+      }
+    </ul>
+  </nav>
+
+  <!-- Footer -->
+  <div class="mt-auto border-t border-border p-3 bg-muted/20 shrink-0">
+    @if (collapsed()) {
+      <div class="text-[10px] font-semibold text-muted-foreground text-center" title="Universidade Estadual de Goiás © 2026">
+        UEG
+      </div>
+    } @else {
+      <div class="text-xs text-muted-foreground text-center">
+        Universidade Estadual de Goiás<br />© 2026
+      </div>
+    }
+  </div>
+</aside>
+
+<!-- Recursive Expanded Tree Node -->
+<ng-template #expandedNode let-item="item" let-depth="depth">
+  <li>
+    @if (item.children?.length) {
+      <button
+        type="button"
+        [attr.data-testid]="'sidebar-group-' + item.id"
+        [attr.aria-expanded]="isGroupExpanded(item.id)"
+        (click)="toggleGroup(item.id)"
+        [style.padding-left.px]="12 + depth * 12"
+        class="flex w-full items-center justify-between gap-2 rounded-lg pr-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+        [class.text-primary]="hasActiveDescendant(item)"
+        [class.bg-primary/5]="hasActiveDescendant(item)"
+        [class.text-muted-foreground]="!hasActiveDescendant(item)"
+        [class.hover:bg-muted]="!hasActiveDescendant(item)"
+        [class.hover:text-foreground]="!hasActiveDescendant(item)"
+      >
+        <span class="flex items-center gap-3 min-w-0">
+          @if (item.icon) {
+            <app-sidebar-icon [name]="item.icon" svgClass="h-4 w-4 shrink-0" />
+          }
+          <span [attr.data-testid]="'sidebar-label-' + item.id" class="truncate">
+            {{ item.label }}
+          </span>
+        </span>
+        <svg
+          class="h-4 w-4 shrink-0 transition-transform duration-200"
+          [class.rotate-90]="isGroupExpanded(item.id)"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      @if (isGroupExpanded(item.id)) {
+        <ul class="mt-1 flex flex-col gap-0.5">
+          @for (child of item.children; track child.id) {
+            <ng-container
+              [ngTemplateOutlet]="expandedNode"
+              [ngTemplateOutletContext]="{ item: child, depth: depth + 1 }"
+            ></ng-container>
+          }
+        </ul>
+      }
+    } @else {
+      <a
+        [routerLink]="item.route"
+        routerLinkActive="bg-primary/10 text-primary font-medium"
+        [routerLinkActiveOptions]="{ exact: !!item.exact }"
+        (click)="onLeafClick()"
+        [style.padding-left.px]="12 + depth * 12"
+        class="flex items-center justify-between gap-2 rounded-lg pr-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <span class="flex items-center gap-3 min-w-0">
+          @if (item.icon) {
+            <app-sidebar-icon [name]="item.icon" svgClass="h-4 w-4 shrink-0" />
+          }
+          <span [attr.data-testid]="'sidebar-label-' + item.id" class="truncate">
+            {{ item.label }}
+          </span>
+        </span>
+        @if (item.badge) {
+          <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            {{ item.badge }}
+          </span>
+        }
+      </a>
+    }
+  </li>
+</ng-template>
+
+<!-- Recursive Flyout Submenu (Collapsed Mode) -->
+<ng-template #flyoutNodes let-items="items">
+  <ul class="flex flex-col gap-0.5">
+    @for (sub of items; track sub.id) {
+      <li>
+        @if (sub.children?.length) {
+          <div class="px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            {{ sub.label }}
+          </div>
+          <div class="pl-2">
+            <ng-container
+              [ngTemplateOutlet]="flyoutNodes"
+              [ngTemplateOutletContext]="{ items: sub.children }"
+            ></ng-container>
+          </div>
+        } @else {
+          <a
+            [routerLink]="sub.route"
+            routerLinkActive="bg-primary/10 text-primary font-medium"
+            [routerLinkActiveOptions]="{ exact: !!sub.exact }"
+            (click)="onLeafClick()"
+            class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            @if (sub.icon) {
+              <app-sidebar-icon [name]="sub.icon" svgClass="h-4 w-4 shrink-0" />
+            }
+            <span class="truncate">{{ sub.label }}</span>
+          </a>
+        }
+      </li>
+    }
+  </ul>
+</ng-template>

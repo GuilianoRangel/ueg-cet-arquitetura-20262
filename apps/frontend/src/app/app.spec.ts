@@ -11,16 +11,23 @@ describe('App', () => {
     currentUser: signal(null),
     hasRole: () => false,
     rolesLoaded: signal(false),
-    logout: () => {}
+    logout: () => {},
   };
 
   beforeEach(async () => {
+    localStorage.clear();
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 1280,
+    });
+
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: mockAuthService }
-      ]
+        { provide: AuthService, useValue: mockAuthService },
+      ],
     }).compileComponents();
   });
 
@@ -28,5 +35,19 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('should persist desktop sidebarCollapsed state in localStorage', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    expect(app.sidebarCollapsed()).toBe(false);
+    app.toggleSidebar();
+    expect(app.sidebarCollapsed()).toBe(true);
+    expect(localStorage.getItem('ueg_sidebar_collapsed')).toBe('true');
+
+    // Recreating App reads persisted state
+    const fixture2 = TestBed.createComponent(App);
+    expect(fixture2.componentInstance.sidebarCollapsed()).toBe(true);
   });
 });
