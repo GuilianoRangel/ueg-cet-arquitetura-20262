@@ -1,8 +1,13 @@
 import { DataSource } from 'typeorm';
 import { join } from 'path';
-import { SENSITIVE_DATA_ROLE } from '@repo/utils';
+import { SENSITIVE_DATA_ROLE, ERROR_CODES } from '@repo/utils';
 import { CrudService, CrudDeps } from './crud.service';
 import { CrudConfig, AuthenticatedUser } from './crud.types';
+import { FormFieldMeta } from './decorators/form-field-meta.decorator';
+import { EntityStatus } from './decorators/entity-status.decorator';
+import { createUpdateDto } from './create-update-dto';
+import { BaseEntity } from './base.entity';
+import { Column, Entity } from 'typeorm';
 import { Categoria } from '../../categorias/entities/categoria.entity';
 import { User } from '../../users/entities/user.entity';
 import { Perfil } from '../../perfis/entities/perfil.entity';
@@ -743,6 +748,171 @@ describe('CrudService', () => {
 
       expect(fulfilled.length).toBe(1);
       expect(rejected.length).toBe(1);
+    });
+  });
+
+  describe('@EntityStatus validation and metadata', () => {
+    it('should expose statusField on getMeta when entity has @EntityStatus', async () => {
+      const meta = await service.getMeta(defaultUser);
+      expect(meta.statusField).toEqual({
+        field: 'ativo',
+        type: 'boolean',
+        inactiveValues: [false],
+        inactiveLabel: 'Inativo',
+      });
+    });
+
+    it('should reject create and update when referenced option entity is inactive (boolean or enum) and allow after removing inactive option', async () => {
+      enum ParceiroStatus {
+        ATIVO = 'ATIVO',
+        INATIVO = 'INATIVO',
+        BLOQUEADO = 'BLOQUEADO',
+      }
+
+      @Entity('test_parceiros_crud')
+      class TestParceiroEntity extends BaseEntity {
+        @Column({ type: 'varchar', length: 100 })
+        nome!: string;
+
+        @EntityStatus({
+          type: 'enum',
+          inactiveValues: [ParceiroStatus.INATIVO, ParceiroStatus.BLOQUEADO],
+        })
+        @Column({ type: 'varchar', default: ParceiroStatus.ATIVO })
+        situacao!: ParceiroStatus;
+      }
+
+      @Entity('test_contratos_crud')
+      class TestContratoEntity extends BaseEntity {
+        @Column({ type: 'varchar', length: 100 })
+        descricao!: string;
+
+        @Column({ type: 'varchar', length: 36, nullable: true })
+        parceiroId!: string | null;
+      }
+
+      const localDs = new DataSource({
+        type: 'sqlite',
+        database: ':memory:',
+        entities: [
+          TestParceiroEntity,
+          TestContratoEntity,
+          Perfil,
+          Funcionalidade,
+          FuncionalidadeAcao,
+        ],
+        synchronize: true,
+        logging: false,
+      });
+      await localDs.initialize();
+
+      try {
+        const localRunner = new TransactionRunner(localDs);
+        const localDeps = new CrudDeps(
+          localRunner,
+          permissionsServiceMock as PermissionsService,
+          maskService,
+        );
+
+        class CreateContratoDto {
+          descricao!: string;
+
+          @FormFieldMeta({
+            label: 'Parceiro',
+            inputType: 'select',
+            optionsEndpoint: '/test-parceiros',
+            optionsEntity: () => TestParceiroEntity,
+          })
+          parceiroId?: string;
+        }
+        class UpdateContratoDto extends createUpdateDto(CreateContratoDto) {}
+
+        class TestContratoService extends CrudService<
+          TestContratoEntity,
+          CreateContratoDto,
+          UpdateContratoDto
+        > {}
+
+        const contratoService = new TestContratoService(localDeps, {
+          resource: 'test-contratos',
+          entity: TestContratoEntity,
+          createDto: CreateContratoDto,
+          updateDto: UpdateContratoDto,
+        });
+
+        const parceiroRepo = localDs.getRepository(TestParceiroEntity);
+        const pAtivo = await parceiroRepo.save(
+          parceiroRepo.create({
+            nome: 'Parceiro Bom',
+            situacao: ParceiroStatus.ATIVO,
+          }),
+        );
+        const pBloqueado = await parceiroRepo.save(
+          parceiroRepo.create({
+            nome: 'Parceiro Ruim',
+            situacao: ParceiroStatus.BLOQUEADO,
+          }),
+        );
+
+        // Reject create with inactive enum option
+        try {
+          await contratoService.create(
+            { descricao: 'C1', parceiroId: pBloqueado.id },
+            defaultUser,
+          );
+          fail('Expected create to throw BusinessException');
+        } catch (err: unknown) {
+          expect(err).toBeInstanceOf(BusinessException);
+          const be = err as BusinessException;
+          expect(be.code).toBe(ERROR_CODES.INACTIVE_OPTION_NOT_ALLOWED);
+          expect(be.details).toEqual([
+            expect.objectContaining({ field: 'parceiroId' }),
+          ]);
+        }
+
+        // Create with active option succeeds
+        const created = await contratoService.create(
+          { descricao: 'C1', parceiroId: pAtivo.id },
+          defaultUser,
+        );
+        expect(created.parceiroId).toBe(pAtivo.id);
+
+        // Deactivate pAtivo -> update keeping pAtivo should fail
+        pAtivo.situacao = ParceiroStatus.INATIVO;
+        await parceiroRepo.save(pAtivo);
+
+        try {
+          await contratoService.update(
+            created.id,
+            { parceiroId: pAtivo.id, version: created.version },
+            defaultUser,
+          );
+          fail('Expected update to throw BusinessException');
+        } catch (err: unknown) {
+          expect(err).toBeInstanceOf(BusinessException);
+          const be = err as BusinessException;
+          expect(be.code).toBe(ERROR_CODES.INACTIVE_OPTION_NOT_ALLOWED);
+          expect(be.details).toEqual([
+            expect.objectContaining({ field: 'parceiroId' }),
+          ]);
+        }
+
+        // Replacing with newly created active option succeeds
+        const pNovoAtivo = await parceiroRepo.save(
+          parceiroRepo.create({
+            nome: 'Parceiro Novo',
+            situacao: ParceiroStatus.ATIVO,
+          }),
+        );
+        const updated = await contratoService.update(
+          created.id,
+          { parceiroId: pNovoAtivo.id, version: created.version },
+          defaultUser,
+        );
+        expect(updated.parceiroId).toBe(pNovoAtivo.id);
+      } finally {
+        await localDs.destroy();
+      }
     });
   });
 });

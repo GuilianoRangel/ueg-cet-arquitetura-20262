@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToMany, JoinTable } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from '../../common/crud/base.entity';
+import { EntityStatus } from '../../common/crud/decorators/entity-status.decorator';
 import { Perfil } from '../../perfis/entities/perfil.entity';
 
 @Entity('users')
@@ -26,6 +27,7 @@ export class User extends BaseEntity {
     example: true,
     description: 'Status de ativação da conta',
   })
+  @EntityStatus()
   @Column({ default: false })
   ativo!: boolean;
 

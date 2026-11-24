@@ -1,6 +1,7 @@
 import { Entity, Column, Index, ManyToMany, JoinTable } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from '../../common/crud/base.entity';
+import { EntityStatus } from '../../common/crud/decorators/entity-status.decorator';
 import { FuncionalidadeAcao } from './funcionalidade-acao.entity';
 
 @Entity('perfis')
@@ -20,6 +21,7 @@ export class Perfil extends BaseEntity {
     example: true,
     description: 'Status de ativação do perfil',
   })
+  @EntityStatus()
   @Column({ type: 'boolean', default: true })
   ativo!: boolean;
 

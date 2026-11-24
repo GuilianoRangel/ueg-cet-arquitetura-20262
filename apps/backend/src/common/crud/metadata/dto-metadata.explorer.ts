@@ -1,18 +1,23 @@
 import 'reflect-metadata';
 import { Injectable } from '@nestjs/common';
 import { getMetadataStorage } from 'class-validator';
+import { getMetadataArgsStorage } from 'typeorm';
 import {
   CrudFormFieldSchema,
   CrudFormSchemaDto,
+  EntityStatusFieldMeta,
   FormFieldValidationRule,
   FormInputType,
   SENSITIVE_DATA_ROLE,
 } from '@repo/utils';
 import {
   CRUD_BASE_DTO_KEY,
+  EntityTypeRef,
   FormFieldMetaOptions,
   getFormFieldsMeta,
 } from '../decorators/form-field-meta.decorator';
+import { getEntityStatusMeta } from '../decorators/entity-status.decorator';
+import { CrudResourceRegistry } from './crud-resource-registry';
 import { getMaskedFields } from '../masking/masked.decorator';
 
 interface SwaggerPropertyMeta {
@@ -96,6 +101,11 @@ export class DtoMetadataExplorer {
         ? (fMeta.order ?? 999)
         : (fMeta.order ?? fallbackOrder++);
 
+      const optionsStatusField =
+        inputType === 'select' || inputType === 'multiselect'
+          ? this.resolveOptionsStatusField(fMeta, entityClass)
+          : undefined;
+
       const schemaField: CrudFormFieldSchema = {
         name: propName,
         label: fMeta.label || humanizeFieldName(propName),
@@ -121,6 +131,7 @@ export class DtoMetadataExplorer {
         ...(fMeta.optionsLabelKey
           ? { optionsLabelKey: fMeta.optionsLabelKey }
           : {}),
+        ...(optionsStatusField ? { optionsStatusField } : {}),
         ...(fMeta.entityRelationProperty
           ? { entityRelationProperty: fMeta.entityRelationProperty }
           : {}),
@@ -381,5 +392,70 @@ export class DtoMetadataExplorer {
       return 'password';
     }
     return 'text';
+  }
+
+  public resolveTargetEntityForField(
+    fMeta: FormFieldMetaOptions,
+    entityClass?: new (...args: never[]) => unknown,
+  ): (new (...args: never[]) => unknown) | undefined {
+    if (fMeta.optionsEntity) {
+      const explicit = this.resolveEntityTypeRef(fMeta.optionsEntity);
+      if (explicit) {
+        return explicit;
+      }
+    }
+
+    if (entityClass && fMeta.entityRelationProperty) {
+      const hierarchy = new Set<unknown>(
+        this.getClassHierarchy(
+          entityClass as unknown as new (...args: unknown[]) => unknown,
+        ),
+      );
+      const relationMeta = getMetadataArgsStorage().relations.find(
+        (rel) =>
+          hierarchy.has(rel.target) &&
+          rel.propertyName === fMeta.entityRelationProperty,
+      );
+      if (relationMeta && typeof relationMeta.type === 'function') {
+        const resolved = this.resolveEntityTypeRef(
+          relationMeta.type as EntityTypeRef,
+        );
+        if (resolved) {
+          return resolved;
+        }
+      }
+    }
+
+    if (fMeta.optionsEndpoint) {
+      const fromRegistry = CrudResourceRegistry.getEntityByEndpoint(
+        fMeta.optionsEndpoint,
+      );
+      if (fromRegistry) {
+        return fromRegistry;
+      }
+    }
+
+    return undefined;
+  }
+
+  private resolveOptionsStatusField(
+    fMeta: FormFieldMetaOptions,
+    entityClass?: new (...args: never[]) => unknown,
+  ): EntityStatusFieldMeta | undefined {
+    const targetEntity = this.resolveTargetEntityForField(fMeta, entityClass);
+    return targetEntity ? getEntityStatusMeta(targetEntity) : undefined;
+  }
+
+  private resolveEntityTypeRef(
+    ref: EntityTypeRef,
+  ): (new (...args: never[]) => unknown) | undefined {
+    if (typeof ref !== 'function') {
+      return undefined;
+    }
+    if (!ref.prototype) {
+      const resolved = (ref as () => new (...args: never[]) => unknown)();
+      return typeof resolved === 'function' ? resolved : undefined;
+    }
+    return ref as new (...args: never[]) => unknown;
   }
 }

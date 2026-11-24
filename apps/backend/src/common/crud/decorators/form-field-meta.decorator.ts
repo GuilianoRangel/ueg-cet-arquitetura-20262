@@ -1,6 +1,10 @@
 import 'reflect-metadata';
 import { FilterOptionItem, FormInputType } from '@repo/utils';
 
+export type EntityTypeRef =
+  | (new (...args: never[]) => unknown)
+  | (() => new (...args: never[]) => unknown);
+
 export const FORM_FIELD_META_KEY = Symbol('FORM_FIELD_META_KEY');
 export const CRUD_BASE_DTO_KEY = Symbol('CRUD_BASE_DTO_KEY');
 
@@ -16,6 +20,8 @@ export interface FormFieldMetaOptions {
   optionsValueKey?: string;
   optionsLabelKey?: string;
   optionsStatic?: FilterOptionItem[];
+  /** Entidade alvo das opções quando não inferida por relação TypeORM ou CrudResourceRegistry */
+  optionsEntity?: EntityTypeRef;
   /** Nome da propriedade na entidade retornada pelo GET /:id para mapear relações (ex: 'perfis' -> 'perfilIds') */
   entityRelationProperty?: string;
   entityRelationValueKey?: string;

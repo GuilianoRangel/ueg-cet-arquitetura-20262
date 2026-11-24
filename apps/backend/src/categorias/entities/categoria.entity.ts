@@ -1,6 +1,7 @@
 import { Entity, Column, Index } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from '../../common/crud/base.entity';
+import { EntityStatus } from '../../common/crud/decorators/entity-status.decorator';
 import { Masked } from '../../common/crud/masking/masked.decorator';
 
 @Entity('categorias')
@@ -20,6 +21,7 @@ export class Categoria extends BaseEntity {
     example: true,
     description: 'Status de ativação da categoria',
   })
+  @EntityStatus()
   @Column({ type: 'boolean', default: true })
   ativo!: boolean;
 

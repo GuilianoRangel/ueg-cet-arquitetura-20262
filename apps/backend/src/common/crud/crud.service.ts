@@ -1,13 +1,17 @@
 import { HttpStatus, Logger } from '@nestjs/common';
-import { DeepPartial } from 'typeorm';
+import { DeepPartial, In } from 'typeorm';
 import {
   CrudFormSchemaDto,
   CrudResourceMetaDto,
+  ERROR_CODES,
   PageResult,
   SearchFilterConfigDto,
   SENSITIVE_DATA_ROLE,
 } from '@repo/utils';
 import { BaseEntity } from './base.entity';
+import { getEntityStatusMeta } from './decorators/entity-status.decorator';
+import { getFormFieldsMeta } from './decorators/form-field-meta.decorator';
+import { CrudResourceRegistry } from './metadata/crud-resource-registry';
 import {
   AuthenticatedUser,
   CrudAfterFindHook,
@@ -70,7 +74,9 @@ export abstract class CrudService<
   constructor(
     protected readonly deps: CrudDeps,
     protected readonly config: CrudConfig<E, C, U>,
-  ) {}
+  ) {
+    CrudResourceRegistry.register(config.resource, config.entity);
+  }
 
   public addValidator(op: 'create', fn: CrudValidator<E, C>): this;
   public addValidator(op: 'update', fn: CrudValidator<E, U>): this;
@@ -201,6 +207,8 @@ export abstract class CrudService<
         await val(ctx);
       }
 
+      await this.validarOpcoesRelacionadasAtivas(ctx, this.config.createDto);
+
       // 7. Before hooks
       const beforeHooks = this.beforeHooks.get('create') || [];
       for (const bh of beforeHooks) {
@@ -321,6 +329,8 @@ export abstract class CrudService<
       for (const val of validators) {
         await val(ctx);
       }
+
+      await this.validarOpcoesRelacionadasAtivas(ctx, this.config.updateDto);
 
       // 7. Before hooks
       const beforeHooks = this.beforeHooks.get('update') || [];
@@ -674,11 +684,89 @@ export abstract class CrudService<
       userRoles,
     );
 
+    const statusField = getEntityStatusMeta(this.config.entity);
+
     return {
       resource: this.config.resource,
       filters,
       createForm,
       updateForm,
+      ...(statusField ? { statusField } : {}),
     };
+  }
+
+  private async validarOpcoesRelacionadasAtivas<I extends object>(
+    ctx: CrudContext<E, I>,
+    dtoClass: new (...args: unknown[]) => I,
+  ): Promise<void> {
+    const fieldsMeta = getFormFieldsMeta(dtoClass);
+    const rawInput = ctx.input as Record<string, unknown>;
+
+    for (const [propName, fMeta] of Object.entries(fieldsMeta)) {
+      if (
+        !fMeta.optionsEndpoint &&
+        !fMeta.entityRelationProperty &&
+        !fMeta.optionsEntity
+      ) {
+        continue;
+      }
+
+      const rawVal = rawInput[propName];
+      if (rawVal === undefined || rawVal === null || rawVal === '') {
+        continue;
+      }
+
+      const values = Array.isArray(rawVal) ? rawVal : [rawVal];
+      const uniqueValues = Array.from(
+        new Set(
+          values.filter(
+            (v): v is string | number | boolean =>
+              typeof v === 'string' ||
+              typeof v === 'number' ||
+              typeof v === 'boolean',
+          ),
+        ),
+      );
+      if (uniqueValues.length === 0) {
+        continue;
+      }
+
+      const targetEntity = this.dtoExplorer.resolveTargetEntityForField(
+        fMeta,
+        this.config.entity,
+      );
+      if (!targetEntity) {
+        continue;
+      }
+
+      const statusMeta = getEntityStatusMeta(targetEntity);
+      if (!statusMeta) {
+        continue;
+      }
+
+      const valueKey =
+        fMeta.optionsValueKey || fMeta.entityRelationValueKey || 'id';
+      const repo = ctx.manager.getRepository(targetEntity);
+      const found = (await repo.find({
+        where: { [valueKey]: In(uniqueValues) } as never,
+      })) as Array<Record<string, unknown>>;
+
+      const hasMissing = found.length !== uniqueValues.length;
+      const hasInactive = found.some((item) => {
+        const val = item[statusMeta.field];
+        return statusMeta.inactiveValues.some(
+          (inactiveVal) => inactiveVal === val,
+        );
+      });
+
+      if (hasMissing || hasInactive) {
+        throw new BusinessException(
+          'Uma ou mais opções selecionadas estão inativas ou foram removidas',
+          ERROR_CODES.INACTIVE_OPTION_NOT_ALLOWED,
+          HttpStatus.BAD_REQUEST,
+          propName,
+        );
+      }
+    }
   }
 }

@@ -17,7 +17,16 @@ import { SENSITIVE_DATA_ROLE } from '@repo/utils';
 import { createUpdateDto } from '../create-update-dto';
 import { FormFieldMeta } from '../decorators/form-field-meta.decorator';
 import { Masked } from '../masking/masked.decorator';
+import { EntityStatus } from '../decorators/entity-status.decorator';
+import { CrudResourceRegistry } from './crud-resource-registry';
 import { DtoMetadataExplorer } from './dto-metadata.explorer';
+import {
+  Column,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 class TestEntity {
   id!: string;
@@ -282,5 +291,127 @@ describe('DtoMetadataExplorer', () => {
     expect(valor?.readOnly).toBe(false);
     expect(valor?.masked).toBe(false);
     expect(valor?.omitOnSubmit).toBe(false);
+  });
+
+  it('should resolve optionsStatusField automatically via TypeORM relation, CrudResourceRegistry and explicit optionsEntity', () => {
+    enum ParceiroStatus {
+      ATIVO = 'ATIVO',
+      INATIVO = 'INATIVO',
+      BLOQUEADO = 'BLOQUEADO',
+    }
+
+    @Entity('test_categorias_status')
+    class TestCategoriaStatusEntity {
+      @PrimaryGeneratedColumn('uuid')
+      id!: string;
+
+      @EntityStatus()
+      @Column({ default: true })
+      ativo!: boolean;
+    }
+
+    @Entity('test_parceiros_status')
+    class TestParceiroStatusEntity {
+      @PrimaryGeneratedColumn('uuid')
+      id!: string;
+
+      @EntityStatus({
+        type: 'enum',
+        inactiveValues: [ParceiroStatus.INATIVO, ParceiroStatus.BLOQUEADO],
+        inactiveLabel: 'Indisponível',
+      })
+      @Column({ type: 'varchar', default: ParceiroStatus.ATIVO })
+      situacao!: ParceiroStatus;
+    }
+
+    @Entity('test_fornecedores_status')
+    class TestFornecedorStatusEntity {
+      @PrimaryGeneratedColumn('uuid')
+      id!: string;
+
+      @EntityStatus({ type: 'enum', inactiveValues: 'DESATIVADO' })
+      @Column({ type: 'varchar' })
+      estado!: string;
+    }
+
+    @Entity('test_filmes_status')
+    class TestFilmeStatusEntity {
+      @PrimaryGeneratedColumn('uuid')
+      id!: string;
+
+      @ManyToMany(() => TestCategoriaStatusEntity)
+      categorias!: TestCategoriaStatusEntity[];
+
+      @ManyToOne(() => TestParceiroStatusEntity)
+      parceiro?: TestParceiroStatusEntity;
+    }
+
+    CrudResourceRegistry.register(
+      'test-fornecedores',
+      TestFornecedorStatusEntity,
+    );
+
+    class TestRelationDto {
+      @FormFieldMeta({
+        label: 'Categorias',
+        inputType: 'multiselect',
+        optionsEndpoint: '/categorias-nao-registradas',
+        entityRelationProperty: 'categorias',
+        order: 1,
+      })
+      @IsArray()
+      categoriaIds!: string[];
+
+      @FormFieldMeta({
+        label: 'Parceiro',
+        inputType: 'select',
+        optionsEndpoint: '/parceiros-nao-registrados',
+        optionsEntity: () => TestParceiroStatusEntity,
+        order: 2,
+      })
+      @IsString()
+      parceiroId!: string;
+
+      @FormFieldMeta({
+        label: 'Fornecedor',
+        inputType: 'select',
+        optionsEndpoint: '/test-fornecedores',
+        order: 3,
+      })
+      @IsString()
+      fornecedorId!: string;
+    }
+
+    const schema = explorer.exploreFormSchema(
+      TestRelationDto,
+      'create',
+      TestFilmeStatusEntity,
+    );
+
+    const catField = schema.fields.find((f) => f.name === 'categoriaIds');
+    expect(catField?.optionsStatusField).toEqual({
+      field: 'ativo',
+      type: 'boolean',
+      inactiveValues: [false],
+      inactiveLabel: 'Inativo',
+    });
+
+    const parceiroField = schema.fields.find((f) => f.name === 'parceiroId');
+    expect(parceiroField?.optionsStatusField).toEqual({
+      field: 'situacao',
+      type: 'enum',
+      inactiveValues: [ParceiroStatus.INATIVO, ParceiroStatus.BLOQUEADO],
+      inactiveLabel: 'Indisponível',
+    });
+
+    const fornecedorField = schema.fields.find(
+      (f) => f.name === 'fornecedorId',
+    );
+    expect(fornecedorField?.optionsStatusField).toEqual({
+      field: 'estado',
+      type: 'enum',
+      inactiveValues: ['DESATIVADO'],
+      inactiveLabel: 'Inativo',
+    });
   });
 });

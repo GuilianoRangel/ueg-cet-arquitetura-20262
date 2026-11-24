@@ -1,6 +1,7 @@
 import { Entity, Column, Index, ManyToMany, JoinTable } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from '../../common/crud/base.entity';
+import { EntityStatus } from '../../common/crud/decorators/entity-status.decorator';
 import { Categoria } from '../../categorias/entities/categoria.entity';
 
 @Entity('filmes')
@@ -58,6 +59,7 @@ export class Filme extends BaseEntity {
     description: 'Status de ativação do filme',
     default: true,
   })
+  @EntityStatus()
   @Column({ type: 'boolean', default: true })
   ativo!: boolean;
 
