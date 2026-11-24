@@ -396,5 +396,343 @@ describe('GenericCrudFormComponent', () => {
       sinopse: '<p>Sinopse Interestelar</p>',
     });
   });
+
+  describe('@EntityStatus filtering and inactive option validation', () => {
+    const createSchemaWithStatus: CrudFormSchemaDto = {
+      mode: 'create',
+      fields: [
+        {
+          name: 'titulo',
+          label: 'Título',
+          inputType: 'text',
+          required: true,
+          order: 1,
+          hidden: false,
+          readOnly: false,
+          validations: [{ type: 'required' }],
+        },
+        {
+          name: 'categoriaIds',
+          label: 'Categorias',
+          inputType: 'multiselect',
+          required: true,
+          order: 2,
+          hidden: false,
+          readOnly: false,
+          optionsEndpoint: '/categorias',
+          optionsValueKey: 'id',
+          optionsLabelKey: 'nome',
+          entityRelationProperty: 'categorias',
+          entityRelationValueKey: 'id',
+          optionsStatusField: {
+            field: 'ativo',
+            type: 'boolean',
+            inactiveValues: [false],
+            inactiveLabel: 'Inativo',
+          },
+          validations: [{ type: 'required' }],
+        },
+        {
+          name: 'parceiroId',
+          label: 'Parceiro',
+          inputType: 'select',
+          required: false,
+          order: 3,
+          hidden: false,
+          readOnly: false,
+          optionsEndpoint: '/parceiros',
+          optionsValueKey: 'id',
+          optionsLabelKey: 'nome',
+          optionsStatusField: {
+            field: 'situacao',
+            type: 'enum',
+            inactiveValues: ['INATIVO', 'BLOQUEADO'],
+            inactiveLabel: 'Indisponível',
+          },
+          validations: [],
+        },
+      ],
+    };
+
+    const updateSchemaWithStatus: CrudFormSchemaDto = {
+      ...createSchemaWithStatus,
+      mode: 'update',
+    };
+
+    function flushCategoriasAndParceiros(): void {
+      const catReqs = httpMock.match((r) => r.url.includes('/categorias'));
+      for (const r of catReqs) {
+        r.flush({
+          items: [
+            { id: 'c-1', nome: 'Eletrônicos', ativo: true },
+            { id: 'c-2', nome: 'Material Escolar222', ativo: false },
+            { id: 'c-3', nome: 'Lançamentos', ativo: true },
+          ],
+          total: 3,
+          page: 1,
+          limit: 1000,
+        });
+      }
+
+      const parcReqs = httpMock.match((r) => r.url.includes('/parceiros'));
+      for (const r of parcReqs) {
+        r.flush({
+          items: [
+            { id: 'pa-1', nome: 'Parceiro Ativo', situacao: 'ATIVO' },
+            { id: 'pa-2', nome: 'Parceiro Inativo', situacao: 'INATIVO' },
+            { id: 'pa-3', nome: 'Parceiro Bloqueado', situacao: 'BLOQUEADO' },
+          ],
+          total: 3,
+          page: 1,
+          limit: 1000,
+        });
+      }
+    }
+
+    it('should hide inactive options (boolean and enum) in create mode', () => {
+      fixture.componentRef.setInput('schema', createSchemaWithStatus);
+      fixture.detectChanges();
+      flushCategoriasAndParceiros();
+      fixture.detectChanges();
+
+      const catField = createSchemaWithStatus.fields.find(
+        (f) => f.name === 'categoriaIds',
+      )!;
+      const parcField = createSchemaWithStatus.fields.find(
+        (f) => f.name === 'parceiroId',
+      )!;
+
+      expect(component.getFieldOptions(catField)).toEqual([
+        { label: 'Eletrônicos', value: 'c-1' },
+        { label: 'Lançamentos', value: 'c-3' },
+      ]);
+      expect(component.getFieldOptions(parcField)).toEqual([
+        { label: 'Parceiro Ativo', value: 'pa-1' },
+      ]);
+    });
+
+    it('should hide unselected inactive options in update mode and display selected inactive option with disabled re-selection after unchecking', () => {
+      fixture.componentRef.setInput('schema', updateSchemaWithStatus);
+      fixture.componentRef.setInput('initialData', {
+        id: 'f-1',
+        titulo: 'Interstelar',
+        categorias: [
+          { id: 'c-1', nome: 'Eletrônicos', ativo: true },
+          { id: 'c-2', nome: 'Material Escolar222', ativo: false },
+        ],
+        parceiroId: 'pa-3',
+      });
+      fixture.detectChanges();
+      flushCategoriasAndParceiros();
+      fixture.detectChanges();
+
+      const host = fixture.nativeElement as HTMLElement;
+      const catContainer = host.querySelector(
+        '[data-testid="multiselect-categoriaIds"]',
+      );
+      expect(catContainer?.textContent).toContain('Eletrônicos');
+      expect(catContainer?.textContent).toContain('Material Escolar222');
+      expect(catContainer?.textContent).toContain('Inativo');
+      expect(catContainer?.textContent).toContain('Lançamentos');
+
+      const parcSelect = host.querySelector(
+        '[data-testid="input-parceiroId"]',
+      ) as HTMLSelectElement;
+      const optionTexts = Array.from(parcSelect.options).map((o) => o.textContent);
+      expect(optionTexts.some((t) => t?.includes('Parceiro Bloqueado'))).toBe(true);
+      expect(optionTexts.some((t) => t?.includes('Parceiro Inativo'))).toBe(false);
+
+      // Should block submit while inactive options remain selected and show field errors
+      const submitSpy = vi.fn();
+      component.formSubmit.subscribe(submitSpy);
+      component.onSubmit();
+      fixture.detectChanges();
+
+      expect(submitSpy).not.toHaveBeenCalled();
+      expect(component.getControlErrorMessage('categoriaIds')).toContain(
+        'Material Escolar222',
+      );
+      expect(component.getControlErrorMessage('parceiroId')).toContain(
+        'Parceiro Bloqueado',
+      );
+
+      // Uncheck inactive category c-2 and switch parceiroId to active pa-1
+      const c2Checkbox = catContainer?.querySelectorAll(
+        'input[type="checkbox"]',
+      )[1] as HTMLInputElement;
+      expect(c2Checkbox.checked).toBe(true);
+      expect(c2Checkbox.disabled).toBe(false);
+
+      c2Checkbox.checked = false;
+      c2Checkbox.dispatchEvent(new Event('change'));
+      component.form.get('parceiroId')?.setValue('pa-1');
+      fixture.detectChanges();
+
+      // Now c-2 stays visible but disabled so it cannot be re-selected
+      const c2CheckboxAfter = catContainer?.querySelectorAll(
+        'input[type="checkbox"]',
+      )[1] as HTMLInputElement;
+      expect(c2CheckboxAfter.checked).toBe(false);
+      expect(c2CheckboxAfter.disabled).toBe(true);
+
+      // Validation errors cleared and submit succeeds
+      expect(component.getControlErrorMessage('categoriaIds')).toBeNull();
+      expect(component.getControlErrorMessage('parceiroId')).toBeNull();
+
+      component.onSubmit();
+      expect(submitSpy).toHaveBeenCalledWith({
+        titulo: 'Interstelar',
+        categoriaIds: ['c-1'],
+        parceiroId: 'pa-1',
+      });
+    });
+
+    it('should detect and block saving when a previously selected option was soft-deleted (missing from complete endpoint list)', () => {
+      fixture.componentRef.setInput('schema', updateSchemaWithStatus);
+      fixture.componentRef.setInput('initialData', {
+        id: 'f-2',
+        titulo: 'Filme Antigo',
+        categoriaIds: ['c-deleted'],
+        parceiroId: '',
+      });
+      fixture.detectChanges();
+      flushCategoriasAndParceiros();
+      fixture.detectChanges();
+
+      const submitSpy = vi.fn();
+      component.formSubmit.subscribe(submitSpy);
+      component.onSubmit();
+      fixture.detectChanges();
+
+      expect(submitSpy).not.toHaveBeenCalled();
+      expect(component.getControlErrorMessage('categoriaIds')).toBeTruthy();
+    });
+  });
+
+  it('should display field-level backend error on boolean fields (e.g. CATEGORIA_IN_USE on ativo) and clear it on change', () => {
+    fixture.componentRef.setInput('schema', userCreateSchema);
+    fixture.detectChanges();
+    flushPerfis();
+
+    const httpError = new HttpErrorResponse({
+      status: 409,
+      error: {
+        statusCode: 409,
+        error: 'CATEGORIA_IN_USE',
+        message: 'Não é possível inativar uma categoria vinculada a filmes ativos',
+        details: [
+          {
+            field: 'ativo',
+            message:
+              'Não é possível inativar uma categoria vinculada a filmes ativos',
+          },
+        ],
+      },
+    });
+
+    component.applyBackendError(httpError);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const ativoField = host.querySelector('[data-testid="form-field-ativo"]');
+    const fieldError = ativoField?.querySelector('[data-testid="field-error"]');
+    expect(fieldError?.textContent).toContain(
+      'Não é possível inativar uma categoria vinculada a filmes ativos',
+    );
+    expect(component.bannerError()).toBeNull();
+
+    // Toggling ativo clears the serverError
+    component.form.get('ativo')?.setValue(true);
+    fixture.detectChanges();
+    expect(component.form.get('ativo')?.errors).toBeNull();
+  });
+
+  it('should scroll to the first invalid field (e.g. inactive option error) when onSubmit is clicked', () => {
+    const updateSchema: CrudFormSchemaDto = {
+      mode: 'update',
+      fields: [
+        {
+          name: 'titulo',
+          label: 'Título',
+          inputType: 'text',
+          required: true,
+          order: 1,
+          hidden: false,
+          readOnly: false,
+          validations: [{ type: 'required' }],
+        },
+        {
+          name: 'categoriaIds',
+          label: 'Categorias',
+          inputType: 'multiselect',
+          required: true,
+          order: 2,
+          hidden: false,
+          readOnly: false,
+          optionsEndpoint: '/categorias',
+          optionsValueKey: 'id',
+          optionsLabelKey: 'nome',
+          entityRelationProperty: 'categorias',
+          entityRelationValueKey: 'id',
+          optionsStatusField: {
+            field: 'ativo',
+            type: 'boolean',
+            inactiveValues: [false],
+            inactiveLabel: 'Inativo',
+          },
+          validations: [{ type: 'required' }],
+        },
+      ],
+    };
+
+    fixture.componentRef.setInput('schema', updateSchema);
+    fixture.componentRef.setInput('initialData', {
+      id: 'f-1',
+      titulo: 'Interstelar',
+      categorias: [{ id: 'c-2', nome: 'Material Escolar222', ativo: false }],
+    });
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne((r) => r.url.includes('/categorias'));
+    req.flush({
+      items: [
+        { id: 'c-1', nome: 'Eletrônicos', ativo: true },
+        { id: 'c-2', nome: 'Material Escolar222', ativo: false },
+      ],
+      total: 2,
+      page: 1,
+      limit: 1000,
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const catFieldEl = host.querySelector(
+      '[data-testid="form-field-categoriaIds"]',
+    ) as HTMLElement;
+    const scrollSpy = vi.fn();
+    catFieldEl.scrollIntoView = scrollSpy;
+
+    component.onSubmit();
+
+    expect(scrollSpy).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  });
+
+  it('should render form fields inside an internal scrollable container with fixed footer actions', () => {
+    fixture.componentRef.setInput('schema', userCreateSchema);
+    fixture.detectChanges();
+    flushPerfis();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const fieldsContainer = host.querySelector('[data-testid="crud-form-fields"]');
+    const actionsContainer = host.querySelector('[data-testid="crud-form-actions"]');
+
+    expect(fieldsContainer?.className).toContain('overflow-y-auto');
+    expect(fieldsContainer?.className).toContain('flex-1');
+    expect(fieldsContainer?.className).toContain('min-h-0');
+    expect(actionsContainer?.className).toContain('shrink-0');
+  });
 });
 
