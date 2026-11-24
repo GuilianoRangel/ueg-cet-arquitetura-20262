@@ -95,6 +95,19 @@ export interface FormFieldValidationRule {
   message?: string;
 }
 
+export type EntityStatusFieldType = "boolean" | "enum";
+
+export interface EntityStatusFieldMeta {
+  /** Nome da propriedade na entidade que indica o status (ex: 'ativo', 'situacao') */
+  field: string;
+  /** Tipo do campo de status */
+  type: EntityStatusFieldType;
+  /** Valores considerados inativos (ex: [false] ou ['INATIVO', 'BLOQUEADO']) */
+  inactiveValues: Array<string | number | boolean>;
+  /** Rótulo exibido para itens inativos no formulário (padrão: 'Inativo') */
+  inactiveLabel?: string;
+}
+
 export interface CrudFormFieldSchema {
   name: string;
   label: string;
@@ -114,6 +127,7 @@ export interface CrudFormFieldSchema {
   optionsEndpoint?: string;
   optionsValueKey?: string;
   optionsLabelKey?: string;
+  optionsStatusField?: EntityStatusFieldMeta;
   entityRelationProperty?: string;
   entityRelationValueKey?: string;
 }
@@ -128,4 +142,5 @@ export interface CrudResourceMetaDto {
   filters: SearchFilterConfigDto;
   createForm: CrudFormSchemaDto;
   updateForm: CrudFormSchemaDto;
+  statusField?: EntityStatusFieldMeta;
 }

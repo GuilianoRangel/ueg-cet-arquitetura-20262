@@ -13,6 +13,7 @@ import {
   CrudFormSchemaDto,
   CrudFormFieldSchema,
   CrudResourceMetaDto,
+  EntityStatusFieldMeta,
   FuncionalidadeAcaoDto,
   FuncionalidadeGroupDto,
   RolesSyncResultDto,
@@ -281,5 +282,48 @@ describe("Contracts", () => {
     };
 
     expect(field.inputType).toBe("richtext");
+  });
+
+  it("should support EntityStatusFieldMeta in CrudFormFieldSchema and CrudResourceMetaDto and INACTIVE_OPTION_NOT_ALLOWED in ERROR_CODES", () => {
+    expect(ERROR_CODES.INACTIVE_OPTION_NOT_ALLOWED).toBe(
+      "INACTIVE_OPTION_NOT_ALLOWED",
+    );
+
+    const boolStatus: EntityStatusFieldMeta = {
+      field: "ativo",
+      type: "boolean",
+      inactiveValues: [false],
+      inactiveLabel: "Inativo",
+    };
+
+    const enumStatus: EntityStatusFieldMeta = {
+      field: "situacao",
+      type: "enum",
+      inactiveValues: ["INATIVO", "BLOQUEADO"],
+    };
+
+    const field: CrudFormFieldSchema = {
+      name: "categoriaIds",
+      label: "Categorias",
+      inputType: "multiselect",
+      required: true,
+      order: 2,
+      hidden: false,
+      readOnly: false,
+      validations: [{ type: "required" }],
+      optionsEndpoint: "/categorias",
+      optionsStatusField: boolStatus,
+    };
+
+    const meta: CrudResourceMetaDto = {
+      resource: "parceiros",
+      filters: { resource: "parceiros", fields: [] },
+      createForm: { mode: "create", fields: [field] },
+      updateForm: { mode: "update", fields: [field] },
+      statusField: enumStatus,
+    };
+
+    expect(field.optionsStatusField?.inactiveValues).toEqual([false]);
+    expect(meta.statusField?.inactiveValues).toEqual(["INATIVO", "BLOQUEADO"]);
   });
 });
