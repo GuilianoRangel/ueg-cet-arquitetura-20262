@@ -305,7 +305,7 @@ describe('CategoriasService', () => {
     );
   });
 
-  it('should throw 409 CATEGORIA_IN_USE when attempting to inactivate (ativo: false) a categoria linked to active filmes', async () => {
+  it('should throw 409 CATEGORIA_IN_USE when attempting to inactivate (ativo: false) a categoria linked to active filmes (ativo: true)', async () => {
     const cat = await service.create(
       { nome: 'Ação e Aventura', ativo: true },
       defaultUser,
@@ -329,5 +329,33 @@ describe('CategoriasService', () => {
       'CATEGORIA_IN_USE',
       'ativo',
     );
+  });
+
+  it('should allow inactivating (ativo: false) a categoria when linked only to inactive filmes (ativo: false)', async () => {
+    const cat = await service.create(
+      { nome: 'Categoria de Filme Inativo', ativo: true },
+      defaultUser,
+    );
+
+    const filmeRepo = dataSource.getRepository(Filme);
+    const filme = filmeRepo.create({
+      titulo: 'Filme Inativo',
+      ano: 2010,
+      diretor: 'Diretor Teste',
+      duracao: 100,
+      sinopse: '<p>Sinopse</p>',
+      generos: ['Drama'],
+      ativo: false,
+      categorias: [{ id: cat.id }],
+    });
+    await filmeRepo.save(filme);
+
+    const updated = await service.update(
+      cat.id,
+      { ativo: false, version: 1 },
+      defaultUser,
+    );
+    expect(updated.ativo).toBe(false);
+    expect(updated.version).toBe(2);
   });
 });

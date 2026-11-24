@@ -126,6 +126,7 @@ export class CategoriasService extends CrudService<
         { categoriaId },
       )
       .where('filme.deletedAt IS NULL')
+      .andWhere('filme.ativo = :ativo', { ativo: true })
       .getCount();
 
     if (count > 0) {
