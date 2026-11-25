@@ -190,6 +190,45 @@ Se você preferir atuar de forma focada em apenas um dos projetos, utilize os fi
 
 ---
 
+## 🐳 Deploy em Produção com Docker (VPS)
+
+O projeto possui suporte a **Docker Compose** preparado para publicação em VPS, expondo **apenas o frontend (Nginx)** publicamente e mantendo o **backend (NestJS)** isolado na rede interna dos containers.
+
+### Arquitetura de Rede e Proxy Reverso
+
+- **Frontend (`${APP_NAME:-ueg-arquitetura}-frontend`)**: único serviço com porta publicada no host (`FRONTEND_PORT`, padrão `80`). Serve o build de produção do Angular (`apiUrl: '/api'`) e atua como proxy reverso via [apps/frontend/nginx.conf](apps/frontend/nginx.conf):
+  - `/api/*` → encaminhado para `http://${BACKEND_HOST}:3000/` (removendo o prefixo `/api` para evitar conflito com as rotas da SPA como `/users`, `/perfis`, `/categorias` e `/filmes`).
+  - `/api/docs` → encaminhado para o Swagger UI do backend mantendo o prefixo `/api/docs`.
+  - Demais rotas → atendidas pela SPA Angular (`try_files $uri $uri/ /index.html`).
+- **Backend (`${APP_NAME:-ueg-arquitetura}-backend`)**: acessível apenas internamente na porta `3000` (`expose`), com `healthcheck` nativo e persistência do banco SQLite e logs no volume `sqlite_data` (`/data`).
+
+### Passo a Passo para Subir no VPS
+
+1. **Configure as variáveis de ambiente** na raiz do repositório a partir de [.env.docker.example](.env.docker.example):
+   ```bash
+   cp .env.docker.example .env
+   ```
+   Edite o arquivo `.env` definindo principalmente:
+   - `APP_NAME`: prefixo dos containers (`<APP_NAME>-backend` e `<APP_NAME>-frontend`).
+   - `FRONTEND_PORT`: porta pública exposta pelo Nginx (ex.: `80` ou outra porta atrás de um proxy SSL do host).
+   - `JWT_SECRET` e `ADMIN_PASSWORD`: segredos fortes de produção.
+   - `FRONTEND_URL` e `CORS_ORIGIN`: URL pública da aplicação (usada nos links de recuperação de senha e CORS).
+
+2. **Construa e inicie os containers**:
+   ```bash
+   docker compose up -d --build
+   ```
+   *(Caso utilize um arquivo com outro nome, como `.env.docker`, execute `docker compose --env-file .env.docker up -d --build`.)*
+
+3. **Comandos úteis de operação**:
+   ```bash
+   docker compose ps          # Verifica status, healthcheck e portas expostas
+   docker compose logs -f     # Acompanha os logs dos containers
+   docker compose down        # Para e remove os containers (mantendo o volume sqlite_data)
+   ```
+
+---
+
 ## 🛡️ Diretrizes de Qualidade e Governança de Código
 
 Se você é um desenvolvedor humano ou um agente de Inteligência Artificial (IA), você **DEVE** seguir rigorosamente as regras abaixo:
