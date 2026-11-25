@@ -1,11 +1,11 @@
 @if (config(); as cfg) {
-  <div class="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col gap-4">
+  <div class="bg-card border border-border rounded-xl p-3 sm:p-4 shadow-xs flex flex-col gap-3 sm:gap-4">
     <!-- Barra Principal (Filtros Rápidos) -->
     <div class="flex flex-wrap items-end gap-3">
       @for (field of quickFields(); track field.field) {
         @switch (field.controlType) {
           @case ('text') {
-            <div class="flex flex-col gap-1 min-w-[200px] flex-1">
+            <div class="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[200px] sm:flex-1">
               <label
                 [for]="'qf-' + field.field"
                 class="text-xs font-medium text-muted-foreground"
@@ -42,7 +42,7 @@
           }
 
           @case ('select') {
-            <div class="flex flex-col gap-1 min-w-[170px]">
+            <div class="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[170px]">
               <label
                 [for]="'qf-' + field.field"
                 class="text-xs font-medium text-muted-foreground"
@@ -67,7 +67,7 @@
           }
 
           @case ('boolean') {
-            <div class="flex flex-col gap-1 min-w-[150px]">
+            <div class="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[150px]">
               <label
                 [for]="'qf-' + field.field"
                 class="text-xs font-medium text-muted-foreground"
@@ -94,7 +94,7 @@
           @case ('master-detail') {
             @if (field.masterDetail; as md) {
               <!-- Select Mestre -->
-              <div class="flex flex-col gap-1 min-w-[170px]">
+              <div class="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[170px]">
                 <label
                   [for]="'qf-master-' + field.field"
                   class="text-xs font-medium text-muted-foreground"
@@ -118,7 +118,7 @@
               </div>
 
               <!-- Select Detalhe -->
-              <div class="flex flex-col gap-1 min-w-[170px]">
+              <div class="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[170px]">
                 <label
                   [for]="'qf-detail-' + field.field"
                   class="text-xs font-medium text-muted-foreground"
@@ -147,13 +147,14 @@
       }
 
       <!-- Botões de Ação -->
-      <div class="flex items-center gap-2 ml-auto">
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
         <button
           type="button"
           ui-button
           variant="default"
           data-testid="smart-filter-search"
           (click)="onSearch()"
+          class="flex-1 sm:flex-none"
         >
           Buscar
         </button>
@@ -164,6 +165,7 @@
           variant="ghost"
           data-testid="smart-filter-clear"
           (click)="onClear()"
+          class="flex-1 sm:flex-none"
         >
           Limpar
         </button>
@@ -174,7 +176,7 @@
           variant="outline"
           data-testid="smart-filter-toggle-advanced"
           (click)="toggleAdvancedPanel()"
-          class="gap-2"
+          class="gap-2 w-full sm:w-auto"
         >
           <span>Filtros Avançados</span>
           @if (activeAdvancedCount() > 0) {

@@ -5,6 +5,7 @@ import {
   inject,
   input,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../ui/badge.component';
 import { ButtonComponent } from '../ui/button.component';
@@ -22,7 +23,7 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
 @Component({
   selector: 'ui-data-table',
   standalone: true,
-  imports: [BadgeComponent, ButtonComponent],
+  imports: [NgTemplateOutlet, BadgeComponent, ButtonComponent],
   templateUrl: './ui-data-table.component.html',
   styleUrl: './ui-data-table.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

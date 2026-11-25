@@ -211,5 +211,26 @@ describe('UiDataTableComponent', () => {
     expect(row2DeleteBtn).not.toBeNull();
     expect(row2DeleteBtn?.disabled).toBe(false);
   });
+
+  it('should render mobile cards with column labels, formatted values and row actions', () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const mobileList = host.querySelector('[data-testid="mobile-card-list"]');
+    expect(mobileList).toBeTruthy();
+
+    const mobileCards = host.querySelectorAll('[data-testid="mobile-card-row"]');
+    expect(mobileCards.length).toBe(2);
+
+    const card1Text = mobileCards[0].textContent ?? '';
+    expect(card1Text).toContain('Nome');
+    expect(card1Text).toContain('Categoria A');
+    expect(card1Text).toMatch(/R\$\s*150,00/);
+    expect(card1Text).toContain('Ativa');
+
+    const card2EditBtn = mobileCards[1].querySelector(
+      '[data-testid="action-edit"]',
+    ) as HTMLButtonElement | null;
+    expect(card2EditBtn).not.toBeNull();
+    expect(card2EditBtn?.disabled).toBe(false);
+  });
 });
 

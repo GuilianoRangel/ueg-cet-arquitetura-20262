@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common';
         <ng-content select="ui-sidebar, app-sidebar, [shell-sidebar]"></ng-content>
 
         <!-- Main Content Area -->
-        <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 focus:outline-none">
+        <main class="flex-1 overflow-y-auto p-2 sm:p-4 md:p-5 focus:outline-none">
           <div class="mx-auto max-w-7xl animate-fade-in">
             <ng-content></ng-content>
           </div>
