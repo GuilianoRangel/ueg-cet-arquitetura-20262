@@ -251,4 +251,22 @@ describe('PerfilFormModalComponent', () => {
     const saveBtn = host.querySelector('[data-testid="perfil-save-btn"]');
     expect(saveBtn).toBeNull();
   });
+
+  it('should render funcionalidades in a responsive multi-column grid and roles vertically inside each card', async () => {
+    await setupModal({
+      mode: 'create',
+      initialData: null,
+      readOnly: false,
+      entityLabel: 'Perfil',
+      service: {} as PerfisService,
+    });
+
+    const host = fixture.nativeElement as HTMLElement;
+    const grid = host.querySelector('[data-testid="funcionalidades-grid"]');
+    expect(grid?.className).toContain('grid');
+    expect(grid?.className).toContain('auto-fit');
+
+    const actionsList = host.querySelector('[data-testid="funcionalidade-actions-list"]');
+    expect(actionsList?.className).toContain('flex-col');
+  });
 });
