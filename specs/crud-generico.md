@@ -297,7 +297,7 @@ API pública do `CrudService` (registrada no construtor do serviço concreto, pe
 `addValidator(op, fn)`, `addBeforeHook(op, fn)`, `addAfterHook(op, fn)`, `addAfterCommitHook(op, fn)`, `addAfterFindHook(fn)` onde `op ∈ 'create'|'update'|'remove'`.
 - Múltiplos registros executam na ordem de registro; o primeiro que lançar interrompe a operação.
 - Validators não alteram dados; before hooks podem.
-- Ponto de extensão protegido: `protected syncRelations(id, input, ctx): Promise<void>` (padrão: no-op) e `protected mapInputToEntity(input, ctx): DeepPartial<E>` (padrão: cópia do input sem `version` e sem `relationInputFields`).
+- Ponto de extensão protegido: `protected syncRelations(id, input, ctx): Promise<void>` (implementação padrão genérica no `CrudService` via reflexão de metadados TypeORM para relações `many-to-many` cuja entidade alvo estende `BaseEntity`, utilizando `relationInputFields` + `@FormFieldMeta({ entityRelationProperty })`; pode ser sobrescrito para tabelas pivô customizadas) e `protected mapInputToEntity(input, ctx): DeepPartial<E>` (padrão: cópia do input sem `version` e sem `relationInputFields`).
 
 ### 5.6 Concorrência otimista (`version`)
 - `update`: DTO exige `version` (inteiro ≥ 1); `remove`: query `?version=N` obrigatória.

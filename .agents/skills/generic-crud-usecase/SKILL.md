@@ -25,8 +25,9 @@ Esta skill orienta o desenvolvimento e a padronização de casos de uso (módulo
 4. **Concorrência Otimista e `createUpdateDto`**:
    - Toda entidade herda `BaseEntity` com controle automático por coluna `version`.
    - O `UpdateDto` deve ser gerado com `createUpdateDto(CreateDto)` (que preserva metadados `@FormFieldMeta` e adiciona `@IsInt() version!: number`).
-5. **Desacoplamento de Relações (`relationInputFields` + `syncRelations`)**:
-   - Campos de DTO que recebem arrays de IDs de relacionamento (ex: `perfilIds`, `acaoIds`) e **não são colunas escalares** da tabela **DEVEM** ser declarados em `relationInputFields` no `CrudConfig` e sincronizados sobrescrevendo `syncRelations`.
+5. **Desacoplamento de Relações (`relationInputFields` + `syncRelations` Genérico)**:
+   - Campos de DTO que recebem arrays de IDs de relacionamento (ex: `perfilIds`, `acaoIds`, `categoriaIds`) e **não são colunas escalares** da tabela **DEVEM** ser declarados em `relationInputFields` no `CrudConfig` e anotados com `@FormFieldMeta({ entityRelationProperty: '<nomeRelacao>' })`.
+   - O `CrudService` base já implementa `syncRelations` **automaticamente por reflexão** via metadados do TypeORM (`many-to-many`), desde que a entidade relacionada estenda `BaseEntity`. Só sobrescreva `syncRelations` manualmente em casos especiais (ex.: tabelas pivô com colunas extras além das chaves).
 6. **Serialização de Getters em Entidades (`toJSON()`)**:
    - Getters TypeScript (`get acaoIds()`, `get funcionalidades()`, `get roles()`) ficam no `prototype` da classe e **não são serializados** pelo `JSON.stringify` padrão do Express/NestJS.
    - Sempre que uma entidade possuir getters que precisam ser enviados na resposta JSON da API, implemente `toJSON()` na entidade expondo explicitamente essas propriedades.
@@ -363,25 +364,8 @@ export class UsersService extends CrudService<
     this.permissionsService.invalidate(entity.id);
   }
 
-  // --- SINCRONIZAÇÃO DE RELACIONAMENTOS ---
-  protected override async syncRelations(
-    id: string,
-    input: CreateManagedUserDto | UpdateManagedUserDto,
-    ctx: CrudContext<User, CreateManagedUserDto | UpdateManagedUserDto>,
-  ): Promise<void> {
-    if (input.perfilIds !== undefined) {
-      const user = await ctx.manager.findOne(User, {
-        where: { id },
-        relations: ['perfis'],
-      });
-      const currentIds = (user?.perfis || []).map((p) => p.id);
-      await ctx.manager
-        .createQueryBuilder()
-        .relation(User, 'perfis')
-        .of(id)
-        .addAndRemove(input.perfilIds, currentIds);
-    }
-  }
+  // A sincronização N:N de `perfilIds` -> `perfis` é herdada automaticamente do `CrudService`
+  // via `relationInputFields` + `@FormFieldMeta({ entityRelationProperty: 'perfis' })`.
 
   // ... outros métodos de regra específica (ex: checkLastAdminProtection, activate)
 }
