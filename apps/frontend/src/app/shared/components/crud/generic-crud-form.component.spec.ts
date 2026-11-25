@@ -734,5 +734,55 @@ describe('GenericCrudFormComponent', () => {
     expect(fieldsContainer?.className).toContain('min-h-0');
     expect(actionsContainer?.className).toContain('shrink-0');
   });
+
+  it('should render custom inactiveLabel (e.g. Removido) on multiselect badge when configured in optionsStatusField', () => {
+    const customLabelSchema: CrudFormSchemaDto = {
+      mode: 'update',
+      fields: [
+        {
+          name: 'categoriaIds',
+          label: 'Categorias',
+          inputType: 'multiselect',
+          required: true,
+          order: 1,
+          hidden: false,
+          readOnly: false,
+          optionsEndpoint: '/categorias',
+          optionsValueKey: 'id',
+          optionsLabelKey: 'nome',
+          entityRelationProperty: 'categorias',
+          entityRelationValueKey: 'id',
+          optionsStatusField: {
+            field: 'ativo',
+            type: 'boolean',
+            inactiveValues: [false],
+            inactiveLabel: 'Removido',
+          },
+          validations: [{ type: 'required' }],
+        },
+      ],
+    };
+
+    fixture.componentRef.setInput('schema', customLabelSchema);
+    fixture.componentRef.setInput('initialData', {
+      id: 'f-1',
+      categorias: [{ id: 'c-2', nome: 'Material Escolar222', ativo: false }],
+    });
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne((r) => r.url.includes('/categorias'));
+    req.flush({
+      items: [{ id: 'c-2', nome: 'Material Escolar222', ativo: false }],
+      total: 1,
+      page: 1,
+      limit: 1000,
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const catContainer = host.querySelector('[data-testid="multiselect-categoriaIds"]');
+    expect(catContainer?.textContent).toContain('Removido');
+    expect(catContainer?.textContent).not.toContain('Inativo');
+  });
 });
 

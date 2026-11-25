@@ -21,7 +21,7 @@ export class Categoria extends BaseEntity {
     example: true,
     description: 'Status de ativação da categoria',
   })
-  @EntityStatus()
+  @EntityStatus({ inactiveLabel: 'Removidoss' })
   @Column({ type: 'boolean', default: true })
   ativo!: boolean;
 
