@@ -12,4 +12,5 @@ packages/utils/.turbo/
 apps/backend/*.sqlite
 apps/backend/*.log
 apps/backend/.env
+.env
 packages/typescript-config/dist/*

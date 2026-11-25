@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 RUN npm install -g pnpm@9.0.0
 
 FROM base AS pruner
@@ -16,13 +16,15 @@ RUN pnpm install --frozen-lockfile
 # Argumento de build para configurar a URL do backend dinamicamente
 ARG API_URL
 RUN if [ -n "$API_URL" ]; then \
-      sed -i "s|apiUrl: 'https://api.ueg.br'|apiUrl: '${API_URL}'|g" apps/frontend/src/environments/environment.prod.ts; \
+      sed -i "s|apiUrl: '/api'|apiUrl: '${API_URL}'|g" apps/frontend/src/environments/environment.prod.ts; \
     fi
 
 RUN pnpm run build --filter=frontend
 
 FROM nginx:alpine AS runner
-COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+ENV NGINX_ENVSUBST_FILTER=BACKEND_HOST
+ENV BACKEND_HOST=ueg-arquitetura-backend
+COPY apps/frontend/nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/apps/frontend/dist/frontend/browser /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

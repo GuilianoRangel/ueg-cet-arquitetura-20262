@@ -3,40 +3,49 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
-    container_name: ueg_backend
+    container_name: ${APP_NAME:-ueg-arquitetura}-backend
     restart: always
-    #ports:
-    #  - "3000:3000"
+    expose:
+      - "3000"
     volumes:
       - sqlite_data:/data
     environment:
       - PORT=3000
       - DATABASE_NAME=/data/database.sqlite
       - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key-change-in-production}
-      - JWT_EXPIRES_IN=1h
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@ueg.br}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost,http://localhost:4200}
       - EMAIL_DISABLED=${EMAIL_DISABLED:-true}
       - EMAIL_SIMULATION_FILE=/data/simulated_emails.log
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   frontend:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
       args:
-        - API_URL=${API_URL:-http://localhost:3000}
-    container_name: ueg_frontend
+        - API_URL=${API_URL:-/api}
+    container_name: ${APP_NAME:-ueg-arquitetura}-frontend
     restart: always
-    #ports:
-    #  - "80:80"
+    environment:
+      - BACKEND_HOST=${APP_NAME:-ueg-arquitetura}-backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   sqlite_data:
