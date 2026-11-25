@@ -34,25 +34,6 @@ export class FilmesService extends CrudService<
     this.addValidator('update', (ctx) => this.validarCategoriasUpdate(ctx));
   }
 
-  protected override async syncRelations(
-    id: string,
-    input: CreateFilmeDto | UpdateFilmeDto,
-    ctx: CrudContext<Filme, CreateFilmeDto | UpdateFilmeDto>,
-  ): Promise<void> {
-    if (input.categoriaIds !== undefined) {
-      const filme = await ctx.manager.findOne(Filme, {
-        where: { id },
-        relations: ['categorias'],
-      });
-      const currentIds = (filme?.categorias || []).map((c) => c.id);
-      await ctx.manager
-        .createQueryBuilder()
-        .relation(Filme, 'categorias')
-        .of(id)
-        .addAndRemove(input.categoriaIds, currentIds);
-    }
-  }
-
   private prepararDadosCreate(ctx: CrudContext<Filme, CreateFilmeDto>): void {
     if (ctx.input.ativo === undefined) {
       ctx.input.ativo = true;

@@ -171,25 +171,6 @@ export class UsersService extends CrudService<
     this.permissionsService.invalidate(entity.id);
   }
 
-  protected override async syncRelations(
-    id: string,
-    input: CreateManagedUserDto | UpdateManagedUserDto,
-    ctx: CrudContext<User, CreateManagedUserDto | UpdateManagedUserDto>,
-  ): Promise<void> {
-    if (input.perfilIds !== undefined) {
-      const user = await ctx.manager.findOne(User, {
-        where: { id },
-        relations: ['perfis'],
-      });
-      const currentIds = (user?.perfis || []).map((p) => p.id);
-      await ctx.manager
-        .createQueryBuilder()
-        .relation(User, 'perfis')
-        .of(id)
-        .addAndRemove(input.perfilIds, currentIds);
-    }
-  }
-
   private async checkLastAdminProtection(
     manager: EntityManager,
     existing: User | null,

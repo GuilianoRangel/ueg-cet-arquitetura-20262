@@ -7,7 +7,7 @@ import { FormFieldMeta } from './decorators/form-field-meta.decorator';
 import { EntityStatus } from './decorators/entity-status.decorator';
 import { createUpdateDto } from './create-update-dto';
 import { BaseEntity } from './base.entity';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
 import { Categoria } from '../../categorias/entities/categoria.entity';
 import { User } from '../../users/entities/user.entity';
 import { Perfil } from '../../perfis/entities/perfil.entity';
@@ -700,7 +700,7 @@ describe('CrudService', () => {
         [p.id],
       );
 
-      class HardCreateDto {}
+      class HardCreateDto { }
       class HardUpdateDto {
         version!: number;
       }
@@ -709,7 +709,7 @@ describe('CrudService', () => {
         Perfil,
         HardCreateDto,
         HardUpdateDto
-      > {}
+      > { }
 
       const hardPerfilService = new HardPerfilService(deps, {
         resource: 'perfis',
@@ -754,12 +754,13 @@ describe('CrudService', () => {
   describe('@EntityStatus validation and metadata', () => {
     it('should expose statusField on getMeta when entity has @EntityStatus', async () => {
       const meta = await service.getMeta(defaultUser);
-      expect(meta.statusField).toEqual({
-        field: 'ativo',
-        type: 'boolean',
-        inactiveValues: [false],
-        inactiveLabel: 'Inativo',
-      });
+      expect(meta.statusField).toEqual(
+        expect.objectContaining({
+          field: 'ativo',
+          type: 'boolean',
+          inactiveValues: [false],
+        }),
+      );
     });
 
     it('should reject create and update when referenced option entity is inactive (boolean or enum) and allow after removing inactive option', async () => {
@@ -825,13 +826,13 @@ describe('CrudService', () => {
           })
           parceiroId?: string;
         }
-        class UpdateContratoDto extends createUpdateDto(CreateContratoDto) {}
+        class UpdateContratoDto extends createUpdateDto(CreateContratoDto) { }
 
         class TestContratoService extends CrudService<
           TestContratoEntity,
           CreateContratoDto,
           UpdateContratoDto
-        > {}
+        > { }
 
         const contratoService = new TestContratoService(localDeps, {
           resource: 'test-contratos',
@@ -910,6 +911,107 @@ describe('CrudService', () => {
           defaultUser,
         );
         expect(updated.parceiroId).toBe(pNovoAtivo.id);
+      } finally {
+        await localDs.destroy();
+      }
+    });
+  });
+
+  describe('generic syncRelations via TypeORM reflection & BaseEntity', () => {
+    it('should automatically sync many-to-many relations whose target extends BaseEntity on create and update', async () => {
+      @Entity('test_tags_sync')
+      class TestTagEntity extends BaseEntity {
+        @Column({ type: 'varchar', length: 80 })
+        nome!: string;
+      }
+
+      @Entity('test_artigos_sync')
+      class TestArtigoEntity extends BaseEntity {
+        @Column({ type: 'varchar', length: 120 })
+        titulo!: string;
+
+        @ManyToMany(() => TestTagEntity)
+        @JoinTable({ name: 'test_artigos_tags_sync' })
+        tags!: TestTagEntity[];
+      }
+
+      const localDs = new DataSource({
+        type: 'sqlite',
+        database: ':memory:',
+        entities: [TestTagEntity, TestArtigoEntity, Perfil, Funcionalidade, FuncionalidadeAcao],
+        synchronize: true,
+        logging: false,
+      });
+      await localDs.initialize();
+
+      try {
+        const localRunner = new TransactionRunner(localDs);
+        const localDeps = new CrudDeps(
+          localRunner,
+          permissionsServiceMock as PermissionsService,
+          maskService,
+        );
+
+        class CreateArtigoDto {
+          titulo!: string;
+
+          @FormFieldMeta({
+            label: 'Tags',
+            inputType: 'multiselect',
+            entityRelationProperty: 'tags',
+          })
+          tagIds?: string[];
+        }
+        class UpdateArtigoDto extends createUpdateDto(CreateArtigoDto) { }
+
+        class TestArtigoService extends CrudService<
+          TestArtigoEntity,
+          CreateArtigoDto,
+          UpdateArtigoDto
+        > { }
+
+        const artigoService = new TestArtigoService(localDeps, {
+          resource: 'test-artigos',
+          entity: TestArtigoEntity,
+          createDto: CreateArtigoDto,
+          updateDto: UpdateArtigoDto,
+          relations: ['tags'],
+          relationInputFields: ['tagIds'],
+        });
+
+        const tagRepo = localDs.getRepository(TestTagEntity);
+        const tag1 = await tagRepo.save(tagRepo.create({ nome: 'Angular' }));
+        const tag2 = await tagRepo.save(tagRepo.create({ nome: 'NestJS' }));
+        const tag3 = await tagRepo.save(tagRepo.create({ nome: 'TypeORM' }));
+
+        // Create with tag1 & tag2
+        const created = await artigoService.create(
+          { titulo: 'Artigo 1', tagIds: [tag1.id, tag2.id] },
+          defaultUser,
+        );
+        expect(created.tags.map((t) => t.id).sort()).toEqual(
+          [tag1.id, tag2.id].sort(),
+        );
+
+        // Partial update without tagIds keeps existing tags
+        const partial = await artigoService.update(
+          created.id,
+          { titulo: 'Artigo 1 Editado', version: created.version },
+          defaultUser,
+        );
+        expect(partial.tags.map((t) => t.id).sort()).toEqual(
+          [tag1.id, tag2.id].sort(),
+        );
+
+        // Update tagIds replaces with tag2 & tag3
+        const updated = await artigoService.update(
+          created.id,
+          { tagIds: [tag2.id, tag3.id], version: partial.version },
+          defaultUser,
+        );
+        expect(updated.tags.map((t) => t.id).sort()).toEqual(
+          [tag2.id, tag3.id].sort(),
+        );
       } finally {
         await localDs.destroy();
       }

@@ -47,25 +47,6 @@ export class PerfisService extends CrudService<
     this.addAfterCommitHook('remove', () => this.invalidarCachePermissoes());
   }
 
-  protected override async syncRelations(
-    id: string,
-    input: CreatePerfilDto | UpdatePerfilDto,
-    ctx: CrudContext<Perfil, CreatePerfilDto | UpdatePerfilDto>,
-  ): Promise<void> {
-    if (input.acaoIds !== undefined) {
-      const perfil = await ctx.manager.findOne(Perfil, {
-        where: { id },
-        relations: ['acoes'],
-      });
-      const currentIds = (perfil?.acoes || []).map((a) => a.id);
-      await ctx.manager
-        .createQueryBuilder()
-        .relation(Perfil, 'acoes')
-        .of(id)
-        .addAndRemove(input.acaoIds, currentIds);
-    }
-  }
-
   private async validarNomeUnicoCreate(
     ctx: CrudContext<Perfil, CreatePerfilDto>,
   ): Promise<void> {

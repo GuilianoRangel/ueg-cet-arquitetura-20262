@@ -51,6 +51,8 @@ export class CreatePerfilDto {
     label: 'Ações de Funcionalidades',
     inputType: 'multiselect',
     optionsEndpoint: '/roles',
+    entityRelationProperty: 'acoes',
+    entityRelationValueKey: 'id',
     order: 2,
   })
   @ApiProperty({

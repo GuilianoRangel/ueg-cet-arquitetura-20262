@@ -1,5 +1,6 @@
 import { HttpStatus, Logger } from '@nestjs/common';
-import { DeepPartial, In } from 'typeorm';
+import { DeepPartial, EntityMetadata, In } from 'typeorm';
+import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import {
   CrudFormSchemaDto,
   CrudResourceMetaDto,
@@ -42,7 +43,7 @@ export class CrudDeps {
     public readonly runner: TransactionRunner,
     public readonly permissions: PermissionsService,
     public readonly mask: MaskService,
-  ) {}
+  ) { }
 }
 
 export abstract class CrudService<
@@ -133,10 +134,101 @@ export abstract class CrudService<
   }
 
   protected async syncRelations(
-    _id: string,
-    _input: C | U,
-    _ctx: CrudContext<E, C | U>,
-  ): Promise<void> {}
+    id: string,
+    input: C | U,
+    ctx: CrudContext<E, C | U>,
+  ): Promise<void> {
+    const relationFields = this.config.relationInputFields ?? [];
+    if (relationFields.length === 0) {
+      return;
+    }
+
+    const dtoClass =
+      ctx.operation === 'create'
+        ? this.config.createDto
+        : this.config.updateDto;
+    const fieldsMeta = getFormFieldsMeta(
+      dtoClass as new (...args: unknown[]) => unknown,
+    );
+    const rawInput = input as Record<string, unknown>;
+    const entityMetadata = ctx.manager.connection.getMetadata(
+      this.config.entity,
+    );
+
+    for (const inputField of relationFields) {
+      const rawValue = rawInput[inputField];
+      if (rawValue === undefined) {
+        continue;
+      }
+
+      const fMeta = fieldsMeta[inputField] ?? {};
+      const relationMeta = this.resolveManyToManyRelationMeta(
+        entityMetadata,
+        inputField,
+        fMeta.entityRelationProperty,
+      );
+      if (!relationMeta) {
+        continue;
+      }
+
+      const targetEntity = relationMeta.inverseEntityMetadata.target;
+      if (
+        typeof targetEntity !== 'function' ||
+        !(targetEntity.prototype instanceof BaseEntity)
+      ) {
+        continue;
+      }
+
+      const relationProp = relationMeta.propertyName;
+      const currentEntity = await ctx.manager.findOne(this.config.entity, {
+        where: { id } as never,
+        relations: [relationProp],
+      });
+      const currentList = (currentEntity as Record<string, unknown> | null)?.[
+        relationProp
+      ];
+      const currentIds = Array.isArray(currentList)
+        ? currentList
+          .filter((item): item is BaseEntity => item instanceof BaseEntity)
+          .map((item) => item.id)
+        : [];
+
+      const nextIds = Array.isArray(rawValue)
+        ? Array.from(
+          new Set(
+            rawValue.filter((v): v is string => typeof v === 'string'),
+          ),
+        )
+        : [];
+
+      await ctx.manager
+        .createQueryBuilder()
+        .relation(this.config.entity, relationProp)
+        .of(id)
+        .addAndRemove(nextIds, currentIds);
+    }
+  }
+
+  private resolveManyToManyRelationMeta(
+    entityMetadata: EntityMetadata,
+    inputField: string,
+    explicitProperty?: string,
+  ): RelationMetadata | undefined {
+    if (explicitProperty) {
+      return entityMetadata.relations.find(
+        (rel) => rel.propertyName === explicitProperty && rel.isManyToMany,
+      );
+    }
+
+    const baseName = inputField.endsWith('Ids')
+      ? inputField.slice(0, -3)
+      : inputField;
+    return entityMetadata.relations.find(
+      (rel) =>
+        rel.isManyToMany &&
+        (rel.propertyName === baseName || rel.propertyName === `${baseName}s`),
+    );
+  }
 
   protected mapInputToEntity(
     input: C | U,
