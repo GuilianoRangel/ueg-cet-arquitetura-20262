@@ -154,5 +154,42 @@ describe('AppSidebarComponent', () => {
     expect(flyout?.textContent).toContain('Catálogo');
     expect(flyout?.textContent).toContain('Filmes');
     expect(flyout?.textContent).toContain('Categorias');
+    expect(flyout?.className).toContain('pl-2');
+    expect(flyout?.className).not.toContain('ml-2');
+  });
+
+  it('should keep collapsed flyout open briefly during diagonal mouse movement and cancel close when entering flyout', async () => {
+    fixture.componentRef.setInput('menuItems', sampleMenu);
+    fixture.componentRef.setInput('collapsed', true);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const catContainer = host.querySelector(
+      '[data-testid="sidebar-item-catalogo"]',
+    ) as HTMLElement;
+
+    catContainer.dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+    expect(host.querySelector('[data-testid="sidebar-flyout-catalogo"]')).not.toBeNull();
+
+    // Mouse leaves briefly (e.g. diagonal move) then enters flyout before 150ms
+    catContainer.dispatchEvent(new MouseEvent('mouseleave'));
+    const flyout = host.querySelector(
+      '[data-testid="sidebar-flyout-catalogo"]',
+    ) as HTMLElement;
+    expect(flyout).not.toBeNull();
+
+    flyout.dispatchEvent(new MouseEvent('mouseenter'));
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    fixture.detectChanges();
+
+    // Still open because mouse entered flyout
+    expect(host.querySelector('[data-testid="sidebar-flyout-catalogo"]')).not.toBeNull();
+
+    // Leaving flyout closes after delay
+    flyout.dispatchEvent(new MouseEvent('mouseleave'));
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    fixture.detectChanges();
+    expect(host.querySelector('[data-testid="sidebar-flyout-catalogo"]')).toBeNull();
   });
 });

@@ -46,6 +46,7 @@ export class AppSidebarComponent {
   readonly expandedGroupIds = signal<Set<string>>(new Set());
   readonly hoveredCollapsedItemId = signal<string | null>(null);
   private readonly currentUrl = signal<string>(this.router.url || '/');
+  private closeHoverTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly visibleMenuItems = computed(() => {
     // Re-evaluate when roles change
@@ -64,6 +65,8 @@ export class AppSidebarComponent {
   });
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.clearCloseHoverTimer());
+
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -119,15 +122,20 @@ export class AppSidebarComponent {
   }
 
   onCollapsedItemEnter(id: string): void {
-    if (this.collapsed()) {
-      this.hoveredCollapsedItemId.set(id);
+    if (!this.collapsed()) {
+      return;
     }
+    this.clearCloseHoverTimer();
+    this.hoveredCollapsedItemId.set(id);
   }
 
   onCollapsedItemLeave(id: string): void {
-    if (this.hoveredCollapsedItemId() === id) {
-      this.hoveredCollapsedItemId.set(null);
-    }
+    this.clearCloseHoverTimer();
+    this.closeHoverTimer = setTimeout(() => {
+      if (this.hoveredCollapsedItemId() === id) {
+        this.hoveredCollapsedItemId.set(null);
+      }
+    }, 150);
   }
 
   onCollapsedParentClick(id: string): void {
@@ -135,12 +143,21 @@ export class AppSidebarComponent {
       this.toggleGroup(id);
       return;
     }
+    this.clearCloseHoverTimer();
     this.hoveredCollapsedItemId.update((curr) => (curr === id ? null : id));
   }
 
   onLeafClick(): void {
+    this.clearCloseHoverTimer();
     this.hoveredCollapsedItemId.set(null);
     this.closeMobile.emit();
+  }
+
+  private clearCloseHoverTimer(): void {
+    if (this.closeHoverTimer !== null) {
+      clearTimeout(this.closeHoverTimer);
+      this.closeHoverTimer = null;
+    }
   }
 
   private filterItemsByRole(items: SidebarMenuItem[]): SidebarMenuItem[] {

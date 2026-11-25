@@ -58,15 +58,19 @@
               @if (hoveredCollapsedItemId() === item.id) {
                 <div
                   [attr.data-testid]="'sidebar-flyout-' + item.id"
-                  class="absolute left-full top-0 z-50 ml-2 min-w-52 rounded-xl border border-border bg-card p-2 text-card-foreground shadow-lg"
+                  (mouseenter)="onCollapsedItemEnter(item.id)"
+                  (mouseleave)="onCollapsedItemLeave(item.id)"
+                  class="absolute left-full top-0 z-50 pl-2"
                 >
-                  <div class="px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border mb-1">
-                    {{ item.label }}
+                  <div class="min-w-52 rounded-xl border border-border bg-card p-2 text-card-foreground shadow-lg">
+                    <div class="px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border mb-1">
+                      {{ item.label }}
+                    </div>
+                    <ng-container
+                      [ngTemplateOutlet]="flyoutNodes"
+                      [ngTemplateOutletContext]="{ items: item.children }"
+                    ></ng-container>
                   </div>
-                  <ng-container
-                    [ngTemplateOutlet]="flyoutNodes"
-                    [ngTemplateOutletContext]="{ items: item.children }"
-                  ></ng-container>
                 </div>
               }
             } @else {
